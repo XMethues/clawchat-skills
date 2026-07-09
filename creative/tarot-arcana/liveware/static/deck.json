@@ -1,0 +1,1794 @@
+[
+  {
+    "id": "major-01",
+    "arcana": "major",
+    "suit": null,
+    "number": 1,
+    "upright": {
+      "keywords": [
+        "Skill, diplomacy, address, subtlety",
+        "sickness, pain, loss, disaster, snares of enemies",
+        "self-confidence, will",
+        "the Querent, if male"
+      ],
+      "summary": "Skill, diplomacy, address, subtlety; sickness, pain, loss, disaster, snares of enemies; self-confidence, will; the Querent, if male.",
+      "summaryModern": "You have all the tools and talents you need. Focus your will, trust your skills, and take deliberate action."
+    },
+    "reversed": {
+      "keywords": [
+        "Physician, Magus, mental disease, disgrace, disquiet"
+      ],
+      "summary": "Physician, Magus, mental disease, disgrace, disquiet.",
+      "summaryModern": "Your potential is untapped or misused. Beware of manipulation — from others or yourself — and reclaim your power."
+    },
+    "name": "The Magician"
+  },
+  {
+    "id": "major-02",
+    "arcana": "major",
+    "suit": null,
+    "number": 2,
+    "upright": {
+      "keywords": [
+        "Secrets, mystery, the future as yet unrevealed",
+        "the woman who interests the Querent, if male",
+        "the Querent herself, if female",
+        "silence, tenacity",
+        "mystery, wisdom, science"
+      ],
+      "summary": "Secrets, mystery, the future as yet unrevealed; the woman who interests the Querent, if male; the Querent herself, if female; silence, tenacity; mystery, wisdom, science.",
+      "summaryModern": "The answer lies within. Be still, listen to your intuition, and pay attention to what is not being said."
+    },
+    "reversed": {
+      "keywords": [
+        "Passion, moral or physical ardour, conceit, surface knowledge"
+      ],
+      "summary": "Passion, moral or physical ardour, conceit, surface knowledge.",
+      "summaryModern": "Secrets or hidden information are at play. You may be ignoring your inner voice — trust what you sense beneath the surface."
+    },
+    "name": "The High Priestess"
+  },
+  {
+    "id": "major-03",
+    "arcana": "major",
+    "suit": null,
+    "number": 3,
+    "upright": {
+      "keywords": [
+        "Fruitfulness, action, initiative, length of days",
+        "the unknown, clandestine",
+        "also difficulty, doubt, ignorance"
+      ],
+      "summary": "Fruitfulness, action, initiative, length of days; the unknown, clandestine; also difficulty, doubt, ignorance.",
+      "summaryModern": "Abundance, nurturing, and creative growth surround you. Connect with nature, beauty, and what brings you comfort."
+    },
+    "reversed": {
+      "keywords": [
+        "Light, truth, the unravelling of involved matters, public rejoicings",
+        "according to another reading, vacillation"
+      ],
+      "summary": "Light, truth, the unravelling of involved matters, public rejoicings; according to another reading, vacillation.",
+      "summaryModern": "Creative or emotional emptiness may be present. You could be neglecting your own needs or overly dependent on others."
+    },
+    "name": "The Empress"
+  },
+  {
+    "id": "major-04",
+    "arcana": "major",
+    "suit": null,
+    "number": 4,
+    "upright": {
+      "keywords": [
+        "Stability, power, protection, realization",
+        "a great person",
+        "aid, reason, conviction",
+        "also authority and will"
+      ],
+      "summary": "Stability, power, protection, realization; a great person; aid, reason, conviction; also authority and will.",
+      "summaryModern": "Structure and authority bring stability. Establish clear boundaries, take charge, and build with discipline."
+    },
+    "reversed": {
+      "keywords": [
+        "Benevolence, compassion, credit",
+        "also confusion to enemies, obstruction, immaturity"
+      ],
+      "summary": "Benevolence, compassion, credit; also confusion to enemies, obstruction, immaturity.",
+      "summaryModern": "Rigidity or lack of control. You may be too domineering — or not disciplined enough."
+    },
+    "name": "The Emperor"
+  },
+  {
+    "id": "major-05",
+    "arcana": "major",
+    "suit": null,
+    "number": 5,
+    "upright": {
+      "keywords": [
+        "Marriage, alliance, captivity, servitude",
+        "by another account, mercy and goodness",
+        "inspiration",
+        "the man to whom the Querent has recourse"
+      ],
+      "summary": "Marriage, alliance, captivity, servitude; by another account, mercy and goodness; inspiration; the man to whom the Querent has recourse.",
+      "summaryModern": "Seek guidance from tradition, mentors, or established knowledge. Sometimes the old ways hold the wisdom you need."
+    },
+    "reversed": {
+      "keywords": [
+        "Society, good understanding, concord, overkindness, weakness"
+      ],
+      "summary": "Society, good understanding, concord, overkindness, weakness.",
+      "summaryModern": "Time to question the rules. Blind conformity no longer serves — forge your own understanding."
+    },
+    "name": "The Hierophant"
+  },
+  {
+    "id": "major-06",
+    "arcana": "major",
+    "suit": null,
+    "number": 6,
+    "upright": {
+      "keywords": [
+        "Attraction, love, beauty, trials overcome"
+      ],
+      "summary": "Attraction, love, beauty, trials overcome.",
+      "summaryModern": "A meaningful choice or union calls to you. Follow what aligns with your deepest values and authentic self."
+    },
+    "reversed": {
+      "keywords": [
+        "Failure, foolish designs",
+        "Another account speaks of marriage frustrated and contrarieties of all kinds"
+      ],
+      "summary": "Failure, foolish designs. Another account speaks of marriage frustrated and contrarieties of all kinds.",
+      "summaryModern": "Misalignment or inner conflict. A difficult decision looms — get clear on what you truly value."
+    },
+    "name": "The Lovers"
+  },
+  {
+    "id": "major-07",
+    "arcana": "major",
+    "suit": null,
+    "number": 7,
+    "upright": {
+      "keywords": [
+        "Succour, providence also war, triumph, presumption, vengeance, trouble"
+      ],
+      "summary": "Succour, providence also war, triumph, presumption, vengeance, trouble.",
+      "summaryModern": "Victory through determination. Harness opposing forces within yourself and drive forward with confidence."
+    },
+    "reversed": {
+      "keywords": [
+        "Riot, quarrel, dispute, litigation, defeat"
+      ],
+      "summary": "Riot, quarrel, dispute, litigation, defeat.",
+      "summaryModern": "Lack of direction or aggressive force. You may be pushing too hard or losing control."
+    },
+    "name": "The Chariot"
+  },
+  {
+    "id": "major-08",
+    "arcana": "major",
+    "suit": null,
+    "number": 8,
+    "upright": {
+      "keywords": [
+        "Power, energy, action, courage, magnanimity",
+        "also complete success and honours"
+      ],
+      "summary": "Power, energy, action, courage, magnanimity; also complete success and honours.",
+      "summaryModern": "True strength is gentle and patient. Meet challenges with compassion, courage, and quiet resilience."
+    },
+    "reversed": {
+      "keywords": [
+        "Despotism, abuse if power, weakness, discord, sometimes even disgrace"
+      ],
+      "summary": "Despotism, abuse if power, weakness, discord, sometimes even disgrace.",
+      "summaryModern": "Self-doubt is weakening your resolve. Fear and insecurity are getting the upper hand."
+    },
+    "name": "Fortitude"
+  },
+  {
+    "id": "major-09",
+    "arcana": "major",
+    "suit": null,
+    "number": 9,
+    "upright": {
+      "keywords": [
+        "Prudence, circumspection",
+        "also and especially treason, dissimulation, roguery, corruption"
+      ],
+      "summary": "Prudence, circumspection; also and especially treason, dissimulation, roguery, corruption.",
+      "summaryModern": "Withdraw to find inner light. Solitude and introspection lead to the answers you seek."
+    },
+    "reversed": {
+      "keywords": [
+        "Concealment, disguise, policy, fear, unreasoned caution"
+      ],
+      "summary": "Concealment, disguise, policy, fear, unreasoned caution.",
+      "summaryModern": "Isolation has gone too far. You may be avoiding connection rather than seeking wisdom."
+    },
+    "name": "The Hermit"
+  },
+  {
+    "id": "major-10",
+    "arcana": "major",
+    "suit": null,
+    "number": 10,
+    "upright": {
+      "keywords": [
+        "Destiny, fortune, success, elevation, luck, felicity"
+      ],
+      "summary": "Destiny, fortune, success, elevation, luck, felicity.",
+      "summaryModern": "The wheel turns. Change is inevitable — embrace the cycle, and know that this too shall pass."
+    },
+    "reversed": {
+      "keywords": [
+        "Increase, abundance, superfluity"
+      ],
+      "summary": "Increase, abundance, superfluity.",
+      "summaryModern": "Resisting change only prolongs the struggle. Let go and trust the natural rhythm of life."
+    },
+    "name": "Wheel Of Fortune"
+  },
+  {
+    "id": "major-11",
+    "arcana": "major",
+    "suit": null,
+    "number": 11,
+    "upright": {
+      "keywords": [
+        "Equity, rightness, probity, executive",
+        "triumph of the deserving side in law"
+      ],
+      "summary": "Equity, rightness, probity, executive; triumph of the deserving side in law.",
+      "summaryModern": "Truth and fairness prevail. Your actions have consequences — seek balance and take responsibility."
+    },
+    "reversed": {
+      "keywords": [
+        "Law in all its departments, legal complications, bigotry, bias, excessive severity"
+      ],
+      "summary": "Law in all its departments, legal complications, bigotry, bias, excessive severity.",
+      "summaryModern": "Injustice or avoidance of truth. Something is out of balance and needs to be confronted."
+    },
+    "name": "Justice"
+  },
+  {
+    "id": "major-12",
+    "arcana": "major",
+    "suit": null,
+    "number": 12,
+    "upright": {
+      "keywords": [
+        "Wisdom, circumspection, discernment, trials, sacrifice, intuition, divination, prophecy"
+      ],
+      "summary": "Wisdom, circumspection, discernment, trials, sacrifice, intuition, divination, prophecy.",
+      "summaryModern": "Pause. A new perspective comes from stillness, not action. Surrender is not defeat — it is wisdom."
+    },
+    "reversed": {
+      "keywords": [
+        "Selfishness, the crowd, body politic"
+      ],
+      "summary": "Selfishness, the crowd, body politic.",
+      "summaryModern": "Stalling or resisting the pause. You are fighting the very thing that would free you."
+    },
+    "name": "The Hanged Man"
+  },
+  {
+    "id": "major-13",
+    "arcana": "major",
+    "suit": null,
+    "number": 13,
+    "upright": {
+      "keywords": [
+        "End, mortality, destruction, corruption also, for a man, the loss of a benefactor for a woman, many contrarieties",
+        "for a maid, failure of marriage projects"
+      ],
+      "summary": "End, mortality, destruction, corruption also, for a man, the loss of a benefactor for a woman, many contrarieties; for a maid, failure of marriage projects.",
+      "summaryModern": "An ending clears the way for new life. Let go of what must pass — transformation is already underway."
+    },
+    "reversed": {
+      "keywords": [
+        "Inertia, sleep, lethargy, petrifaction, somnambulism",
+        "hope destroyed"
+      ],
+      "summary": "Inertia, sleep, lethargy, petrifaction, somnambulism; hope destroyed.",
+      "summaryModern": "Resistance to change creates stagnation. Clinging to what is over will only prolong the pain."
+    },
+    "name": "Death"
+  },
+  {
+    "id": "major-14",
+    "arcana": "major",
+    "suit": null,
+    "number": 14,
+    "upright": {
+      "keywords": [
+        "Economy, moderation, frugality, management, accommodation"
+      ],
+      "summary": "Economy, moderation, frugality, management, accommodation.",
+      "summaryModern": "Find the middle path. Blend opposites with patience, and create harmony through moderation."
+    },
+    "reversed": {
+      "keywords": [
+        "Things connected with churches, religions, sects, the priesthood, sometimes even the priest who will marry the Querent",
+        "also disunion, unfortunate combinations, competing interests"
+      ],
+      "summary": "Things connected with churches, religions, sects, the priesthood, sometimes even the priest who will marry the Querent; also disunion, unfortunate combinations, competing interests.",
+      "summaryModern": "Imbalance or excess. You have lost your equilibrium — slow down and realign."
+    },
+    "name": "Temperance"
+  },
+  {
+    "id": "major-15",
+    "arcana": "major",
+    "suit": null,
+    "number": 15,
+    "upright": {
+      "keywords": [
+        "Ravage, violence, vehemence, extraordinary efforts, force, fatality",
+        "that which is predestined but is not for this reason evil"
+      ],
+      "summary": "Ravage, violence, vehemence, extraordinary efforts, force, fatality; that which is predestined but is not for this reason evil.",
+      "summaryModern": "Confront what binds you — addiction, materialism, unhealthy attachment. Awareness is the first step to freedom."
+    },
+    "reversed": {
+      "keywords": [
+        "Evil fatality, weakness, pettiness, blindness"
+      ],
+      "summary": "Evil fatality, weakness, pettiness, blindness.",
+      "summaryModern": "You are recognizing your chains. The process of breaking free has begun."
+    },
+    "name": "The Devil"
+  },
+  {
+    "id": "major-16",
+    "arcana": "major",
+    "suit": null,
+    "number": 16,
+    "upright": {
+      "keywords": [
+        "Misery, distress, indigence, adversity, calamity, disgrace, deception, ruin",
+        "It is a card in particular of unforeseen catastrophe"
+      ],
+      "summary": "Misery, distress, indigence, adversity, calamity, disgrace, deception, ruin. It is a card in particular of unforeseen catastrophe.",
+      "summaryModern": "A sudden upheaval shatters old structures. From the rubble comes a clearer, more honest foundation."
+    },
+    "reversed": {
+      "keywords": [
+        "According to one account, the same in a lesser degree also oppression, imprisonment, tyranny"
+      ],
+      "summary": "According to one account, the same in a lesser degree also oppression, imprisonment, tyranny.",
+      "summaryModern": "You sense disaster looming but resist it. Avoidance will not prevent necessary change."
+    },
+    "name": "The Tower"
+  },
+  {
+    "id": "major-17",
+    "arcana": "major",
+    "suit": null,
+    "number": 17,
+    "upright": {
+      "keywords": [
+        "Loss, theft, privation, abandonment",
+        "another reading says-hope and bright prospects,"
+      ],
+      "summary": "Loss, theft, privation, abandonment; another reading says-hope and bright prospects,",
+      "summaryModern": "Hope shines after hardship. Heal, trust the process, and let inspiration guide you forward."
+    },
+    "reversed": {
+      "keywords": [
+        "Arrogance, haughtiness, impotence"
+      ],
+      "summary": "Arrogance, haughtiness, impotence.",
+      "summaryModern": "Hope feels distant. Discouragement clouds your vision — but the light has not gone out."
+    },
+    "name": "The Star"
+  },
+  {
+    "id": "major-18",
+    "arcana": "major",
+    "suit": null,
+    "number": 18,
+    "upright": {
+      "keywords": [
+        "Hidden enemies, danger, calumny, darkness, terror, deception, occult forces, error"
+      ],
+      "summary": "Hidden enemies, danger, calumny, darkness, terror, deception, occult forces, error.",
+      "summaryModern": "Not everything is as it seems. Navigate uncertainty by trusting your instincts — the path will reveal itself."
+    },
+    "reversed": {
+      "keywords": [
+        "Instability, inconstancy, silence, lesser degrees of deception and error"
+      ],
+      "summary": "Instability, inconstancy, silence, lesser degrees of deception and error.",
+      "summaryModern": "Fear is beginning to lift. Clarity is emerging where there was once confusion."
+    },
+    "name": "The Moon"
+  },
+  {
+    "id": "major-19",
+    "arcana": "major",
+    "suit": null,
+    "number": 19,
+    "upright": {
+      "keywords": [
+        "Material happiness, fortunate marriage, contentment"
+      ],
+      "summary": "Material happiness, fortunate marriage, contentment.",
+      "summaryModern": "Joy, success, and vitality. This is a time to celebrate life, radiate warmth, and embrace simple happiness."
+    },
+    "reversed": {
+      "keywords": [
+        "The same in a lesser sense"
+      ],
+      "summary": "The same in a lesser sense.",
+      "summaryModern": "Your inner light is temporarily dimmed. The joy is still there — you just need to let it in."
+    },
+    "name": "The Sun"
+  },
+  {
+    "id": "major-20",
+    "arcana": "major",
+    "suit": null,
+    "number": 20,
+    "upright": {
+      "keywords": [
+        "Change of position, renewal, outcome",
+        "Another account specifies total loss though lawsuit"
+      ],
+      "summary": "Change of position, renewal, outcome. Another account specifies total loss though lawsuit.",
+      "summaryModern": "A deep inner calling awakens you. Reflect on the past, forgive, and step into your next chapter."
+    },
+    "reversed": {
+      "keywords": [
+        "Weakness, pusillanimity, simplicity",
+        "also deliberation, decision, sentence"
+      ],
+      "summary": "Weakness, pusillanimity, simplicity; also deliberation, decision, sentence.",
+      "summaryModern": "You are avoiding a necessary self-evaluation. The inner critic is drowning out your true calling."
+    },
+    "name": "The Last Judgment"
+  },
+  {
+    "id": "major-00",
+    "arcana": "major",
+    "suit": null,
+    "number": 0,
+    "upright": {
+      "keywords": [
+        "Folly, mania, extravagance, intoxication, delirium, frenzy, bewrayment"
+      ],
+      "summary": "Folly, mania, extravagance, intoxication, delirium, frenzy, bewrayment.",
+      "summaryModern": "A fresh start awaits. Step forward with trust and an open mind — not knowing exactly where you'll land is part of the adventure."
+    },
+    "reversed": {
+      "keywords": [
+        "Negligence, absence, distribution, carelessness, apathy, nullity, vanity"
+      ],
+      "summary": "Negligence, absence, distribution, carelessness, apathy, nullity, vanity.",
+      "summaryModern": "Caution: recklessness or fear may be at play. You may be avoiding a leap you need to take, or charging ahead without looking."
+    },
+    "name": "The Fool"
+  },
+  {
+    "id": "major-21",
+    "arcana": "major",
+    "suit": null,
+    "number": 21,
+    "upright": {
+      "keywords": [
+        "Assured success, recompense, voyage, route, emigration, flight, change of place"
+      ],
+      "summary": "Assured success, recompense, voyage, route, emigration, flight, change of place.",
+      "summaryModern": "A cycle reaches its glorious completion. Celebrate how far you have come — you have arrived."
+    },
+    "reversed": {
+      "keywords": [
+        "Inertia, fixity, stagnation, permanence"
+      ],
+      "summary": "Inertia, fixity, stagnation, permanence.",
+      "summaryModern": "The finish line is close but something remains incomplete. Take the final step with integrity."
+    },
+    "name": "The World"
+  },
+  {
+    "id": "wands-page",
+    "arcana": "minor",
+    "suit": "wands",
+    "number": 11,
+    "upright": {
+      "keywords": [
+        "Dark young man, faithful, a lover, an envoy, a postman",
+        "Beside a man, he will bear favourable testimony concerning him",
+        "A dangerous rival, if followed by the Page of Cups",
+        "Has the chief qualities of his suit",
+        "He may signify family intelligence"
+      ],
+      "summary": "Dark young man, faithful, a lover, an envoy, a postman. Beside a man, he will bear favourable testimony concerning him. A dangerous rival, if followed by the Page of Cups. Has the chief qualities of his suit. He may signify family intelligence.",
+      "summaryModern": "A spark of curiosity and enthusiasm. Explore a new idea or project with an open, adventurous spirit."
+    },
+    "reversed": {
+      "keywords": [
+        "Anecdotes, announcements, evil news",
+        "Also indecision and the instability which accompanies it"
+      ],
+      "summary": "Anecdotes, announcements, evil news. Also indecision and the instability which accompanies it.",
+      "summaryModern": "Hasty action or lack of direction. Enthusiasm without follow-through leads nowhere."
+    },
+    "name": "Page of Wands"
+  },
+  {
+    "id": "wands-knight",
+    "arcana": "minor",
+    "suit": "wands",
+    "number": 12,
+    "upright": {
+      "keywords": [
+        "Departure, absence, flight, emigration",
+        "A dark young man, friendly",
+        "Change of residence"
+      ],
+      "summary": "Departure, absence, flight, emigration. A dark young man, friendly. Change of residence.",
+      "summaryModern": "Bold, passionate action. Charge toward your goal with energy and confidence — but don't forget to look before you leap."
+    },
+    "reversed": {
+      "keywords": [
+        "Rupture, division, interruption, discord"
+      ],
+      "summary": "Rupture, division, interruption, discord.",
+      "summaryModern": "Rashness or burnout. Scattered energy and impulsive decisions lead to unnecessary chaos."
+    },
+    "name": "Knight of Wands"
+  },
+  {
+    "id": "wands-queen",
+    "arcana": "minor",
+    "suit": "wands",
+    "number": 13,
+    "upright": {
+      "keywords": [
+        "A dark woman, countrywoman, friendly, chaste, loving, honourable",
+        "If the card beside her signifies a man, she is well disposed towards him",
+        "if a woman, she is interested in the Querent",
+        "Also, love of money, or a certain success in business"
+      ],
+      "summary": "A dark woman, countrywoman, friendly, chaste, loving, honourable. If the card beside her signifies a man, she is well disposed towards him; if a woman, she is interested in the Querent. Also, love of money, or a certain success in business.",
+      "summaryModern": "Lead with warmth, confidence, and determination. Your natural charisma and courage inspire those around you."
+    },
+    "reversed": {
+      "keywords": [
+        "Good, economical, obliging, serviceable",
+        "Signifies also--but in certain positions and in the neighbourhood of other cards tending in such directions--opposition, jealousy, even deceit and infidelity"
+      ],
+      "summary": "Good, economical, obliging, serviceable. Signifies also--but in certain positions and in the neighbourhood of other cards tending in such directions--opposition, jealousy, even deceit and infidelity.",
+      "summaryModern": "Self-doubt or jealousy dims your fire. Reclaim your confidence before you lose your warmth."
+    },
+    "name": "Queen of Wands"
+  },
+  {
+    "id": "wands-king",
+    "arcana": "minor",
+    "suit": "wands",
+    "number": 14,
+    "upright": {
+      "keywords": [
+        "Dark man, friendly, countryman, generally married, honest and conscientious",
+        "The card always signifies honesty, and may mean news concerning an unexpected heritage to fall in before very long"
+      ],
+      "summary": "Dark man, friendly, countryman, generally married, honest and conscientious. The card always signifies honesty, and may mean news concerning an unexpected heritage to fall in before very long.",
+      "summaryModern": "Bold, visionary leadership. You have the courage and clarity to take charge and inspire others toward a shared goal."
+    },
+    "reversed": {
+      "keywords": [
+        "Good, but severe",
+        "austere, yet tolerant"
+      ],
+      "summary": "Good, but severe; austere, yet tolerant.",
+      "summaryModern": "Arrogance or unrealistic demands. Your ambition has crossed into domination — temper it with humility."
+    },
+    "name": "King of Wands"
+  },
+  {
+    "id": "wands-ace",
+    "arcana": "minor",
+    "suit": "wands",
+    "number": 1,
+    "upright": {
+      "keywords": [
+        "Creation, invention, enterprise, the powers which result in these",
+        "principle, beginning, source",
+        "birth, family, origin, and in a sense the virility which is behind them",
+        "the starting point of enterprises",
+        "according to another account, money, fortune, inheritance"
+      ],
+      "summary": "Creation, invention, enterprise, the powers which result in these; principle, beginning, source; birth, family, origin, and in a sense the virility which is behind them; the starting point of enterprises; according to another account, money, fortune, inheritance.",
+      "summaryModern": "A spark of creative energy or a new beginning. Seize this opportunity with passion and purpose."
+    },
+    "reversed": {
+      "keywords": [
+        "Fall, decadence, ruin, perdition, to perish also a certain clouded joy"
+      ],
+      "summary": "Fall, decadence, ruin, perdition, to perish also a certain clouded joy.",
+      "summaryModern": "A false start or blocked inspiration. The spark is there but hasn't caught flame yet."
+    },
+    "name": "Ace of Wands"
+  },
+  {
+    "id": "wands-02",
+    "arcana": "minor",
+    "suit": "wands",
+    "number": 2,
+    "upright": {
+      "keywords": [
+        "Between the alternative readings there is no marriage possible",
+        "on the one hand, riches, fortune, magnificence",
+        "on the other, physical suffering, disease, chagrin, sadness, mortification",
+        "The design gives one suggestion",
+        "here is a lord overlooking his dominion and alternately contemplating a globe",
+        "it looks like the malady, the mortification, the sadness of Alexander amidst the grandeur of this world's wealth"
+      ],
+      "summary": "Between the alternative readings there is no marriage possible; on the one hand, riches, fortune, magnificence; on the other, physical suffering, disease, chagrin, sadness, mortification. The design gives one suggestion; here is a lord overlooking his dominion and alternately contemplating a globe; it looks like the malady, the mortification, the sadness of Alexander amidst the grandeur of this world's wealth.",
+      "summaryModern": "You stand at a crossroads of possibility. Look ahead, make plans, and prepare to expand your horizons."
+    },
+    "reversed": {
+      "keywords": [
+        "Surprise, wonder, enchantment, emotion, trouble, fear"
+      ],
+      "summary": "Surprise, wonder, enchantment, emotion, trouble, fear.",
+      "summaryModern": "Fear of the unknown or poor planning. Restlessness may lead to hasty or ill-considered choices."
+    },
+    "name": "Two of Wands"
+  },
+  {
+    "id": "wands-03",
+    "arcana": "minor",
+    "suit": "wands",
+    "number": 3,
+    "upright": {
+      "keywords": [
+        "He symbolizes established strength, enterprise, effort, trade, commerce, discovery",
+        "those are his ships, bearing his merchandise, which are sailing over the sea",
+        "The card also signifies able co-operation in business, as if the successful merchant prince were looking from his side towards yours with a view to help you"
+      ],
+      "summary": "He symbolizes established strength, enterprise, effort, trade, commerce, discovery; those are his ships, bearing his merchandise, which are sailing over the sea. The card also signifies able co-operation in business, as if the successful merchant prince were looking from his side towards yours with a view to help you.",
+      "summaryModern": "Your plans are taking shape. Look ahead with confidence — the horizon holds promise."
+    },
+    "reversed": {
+      "keywords": [
+        "The end of troubles, suspension or cessation of adversity, toil and disappointment"
+      ],
+      "summary": "The end of troubles, suspension or cessation of adversity, toil and disappointment.",
+      "summaryModern": "Frustration or delay. Growth is slower than expected — reassess before pushing forward."
+    },
+    "name": "Three of Wands"
+  },
+  {
+    "id": "wands-04",
+    "arcana": "minor",
+    "suit": "wands",
+    "number": 4,
+    "upright": {
+      "keywords": [
+        "They are for once almost on the surface--country life, haven of refuge, a species of domestic harvest-home, repose, concord, harmony, prosperity, peace, and the perfected work of these"
+      ],
+      "summary": "They are for once almost on the surface--country life, haven of refuge, a species of domestic harvest-home, repose, concord, harmony, prosperity, peace, and the perfected work of these.",
+      "summaryModern": "A time of celebration, harmony, and homecoming. Enjoy the fruits of your labor with loved ones."
+    },
+    "reversed": {
+      "keywords": [
+        "The meaning remains unaltered",
+        "it is prosperity, increase, felicity, beauty, embellishment"
+      ],
+      "summary": "The meaning remains unaltered; it is prosperity, increase, felicity, beauty, embellishment.",
+      "summaryModern": "Tension at home or an unstable foundation. The celebration feels premature."
+    },
+    "name": "Four of Wands"
+  },
+  {
+    "id": "wands-05",
+    "arcana": "minor",
+    "suit": "wands",
+    "number": 5,
+    "upright": {
+      "keywords": [
+        "Imitation, as, for example, sham fight, but also the strenuous competition and struggle of the search after riches and fortune",
+        "In this sense it connects with the battle of life",
+        "Hence some attributions say that it is a card of gold, gain, opulence"
+      ],
+      "summary": "Imitation, as, for example, sham fight, but also the strenuous competition and struggle of the search after riches and fortune. In this sense it connects with the battle of life. Hence some attributions say that it is a card of gold, gain, opulence.",
+      "summaryModern": "Competition and clashing energies. Channel the friction into constructive struggle rather than destructive conflict."
+    },
+    "reversed": {
+      "keywords": [
+        "Litigation, disputes, trickery, contradiction"
+      ],
+      "summary": "Litigation, disputes, trickery, contradiction.",
+      "summaryModern": "Avoidance or unresolved conflict. The tension is lingering — address it before it festers."
+    },
+    "name": "Five of Wands"
+  },
+  {
+    "id": "wands-06",
+    "arcana": "minor",
+    "suit": "wands",
+    "number": 6,
+    "upright": {
+      "keywords": [
+        "The card has been so designed that it can cover several significations",
+        "on the surface, it is a victor triumphing, but it is also great news, such as might be carried in state by the King's courier",
+        "it is expectation crowned with its own desire, the crown of hope, and so forth"
+      ],
+      "summary": "The card has been so designed that it can cover several significations; on the surface, it is a victor triumphing, but it is also great news, such as might be carried in state by the King's courier; it is expectation crowned with its own desire, the crown of hope, and so forth.",
+      "summaryModern": "Victory and recognition. Your efforts are being seen — accept the praise with grace."
+    },
+    "reversed": {
+      "keywords": [
+        "Apprehension, fear, as of a victorious enemy at the gate",
+        "treachery, disloyalty, as of gates being opened to the enemy",
+        "also indefinite delay"
+      ],
+      "summary": "Apprehension, fear, as of a victorious enemy at the gate; treachery, disloyalty, as of gates being opened to the enemy; also indefinite delay.",
+      "summaryModern": "Recognition eludes you, or ego is getting in the way. Stay grounded whether you win or lose."
+    },
+    "name": "Six of Wands"
+  },
+  {
+    "id": "wands-07",
+    "arcana": "minor",
+    "suit": "wands",
+    "number": 7,
+    "upright": {
+      "keywords": [
+        "It is a card of valour, for, on the surface, six are attacking one, who has, however, the vantage position",
+        "On the intellectual plane, it signifies discussion, wordy strife",
+        "in business--negotiations, war of trade, barter, competition",
+        "It is further a card of success, for the combatant is on the top and his enemies may be unable to reach him"
+      ],
+      "summary": "It is a card of valour, for, on the surface, six are attacking one, who has, however, the vantage position. On the intellectual plane, it signifies discussion, wordy strife; in business--negotiations, war of trade, barter, competition. It is further a card of success, for the combatant is on the top and his enemies may be unable to reach him.",
+      "summaryModern": "Stand your ground. You are being challenged — defend your position with courage and persistence."
+    },
+    "reversed": {
+      "keywords": [
+        "Perplexity, embarrassments, anxiety",
+        "It is also a caution against indecision"
+      ],
+      "summary": "Perplexity, embarrassments, anxiety. It is also a caution against indecision.",
+      "summaryModern": "Overwhelmed or ready to give up. The pressure may be too much — consider regrouping."
+    },
+    "name": "Seven of Wands"
+  },
+  {
+    "id": "wands-08",
+    "arcana": "minor",
+    "suit": "wands",
+    "number": 8,
+    "upright": {
+      "keywords": [
+        "Activity in undertakings, the path of such activity, swiftness, as that of an express messenger",
+        "great haste, great hope, speed towards an end which promises assured felicity",
+        "generally, that which is on the move",
+        "also the arrows of love"
+      ],
+      "summary": "Activity in undertakings, the path of such activity, swiftness, as that of an express messenger; great haste, great hope, speed towards an end which promises assured felicity; generally, that which is on the move; also the arrows of love.",
+      "summaryModern": "Rapid progress and forward momentum. Things are moving quickly — stay flexible and ride the wave."
+    },
+    "reversed": {
+      "keywords": [
+        "Arrows of jealousy, internal dispute, stingings of conscience, quarrels",
+        "and domestic disputes for persons who are married"
+      ],
+      "summary": "Arrows of jealousy, internal dispute, stingings of conscience, quarrels; and domestic disputes for persons who are married.",
+      "summaryModern": "Delays and frustration. The energy has stalled — check for miscommunication."
+    },
+    "name": "Eight of Wands"
+  },
+  {
+    "id": "wands-09",
+    "arcana": "minor",
+    "suit": "wands",
+    "number": 9,
+    "upright": {
+      "keywords": [
+        "The card signifies strength in opposition",
+        "If attacked, the person will meet an onslaught boldly",
+        "and his build shews, that he may prove a formidable antagonist",
+        "With this main significance there are all its possible adjuncts--delay, suspension, adjournment"
+      ],
+      "summary": "The card signifies strength in opposition. If attacked, the person will meet an onslaught boldly; and his build shews, that he may prove a formidable antagonist. With this main significance there are all its possible adjuncts--delay, suspension, adjournment.",
+      "summaryModern": "You are weary but nearly there. One last push — guard your boundaries and see it through."
+    },
+    "reversed": {
+      "keywords": [
+        "Obstacles, adversity, calamity"
+      ],
+      "summary": "Obstacles, adversity, calamity.",
+      "summaryModern": "Burnout or paranoia. Exhaustion is making you defensive — rest before the final push."
+    },
+    "name": "Nine of Wands"
+  },
+  {
+    "id": "wands-10",
+    "arcana": "minor",
+    "suit": "wands",
+    "number": 10,
+    "upright": {
+      "keywords": [
+        "A card of many significances, and some of the readings cannot be harmonized",
+        "I set aside that which connects it with honour and good faith",
+        "The chief meaning is oppression simply, but it is also fortune, gain, any kind of success, and then it is the oppression of these things",
+        "It is also a card of false-seeming, disguise, perfidy",
+        "The place which the figure is approaching may suffer from the rods that he carries",
+        "Success is stultified if the Nine of Swords follows, and if it is a question of a lawsuit, there will be certain loss"
+      ],
+      "summary": "A card of many significances, and some of the readings cannot be harmonized. I set aside that which connects it with honour and good faith. The chief meaning is oppression simply, but it is also fortune, gain, any kind of success, and then it is the oppression of these things. It is also a card of false-seeming, disguise, perfidy. The place which the figure is approaching may suffer from the rods that he carries. Success is stultified if the Nine of Swords follows, and if it is a question of a lawsuit, there will be certain loss.",
+      "summaryModern": "You are carrying too much. The burden is heavy — delegate or drop what is not essential."
+    },
+    "reversed": {
+      "keywords": [
+        "Contrarieties, difficulties, intrigues, and their analogies"
+      ],
+      "summary": "Contrarieties, difficulties, intrigues, and their analogies.",
+      "summaryModern": "Release is coming. You are beginning to put down the weight you have been carrying."
+    },
+    "name": "Ten of Wands"
+  },
+  {
+    "id": "cups-page",
+    "arcana": "minor",
+    "suit": "cups",
+    "number": 11,
+    "upright": {
+      "keywords": [
+        "Fair young man, one impelled to render service and with whom the Querent will be connected",
+        "a studious youth",
+        "news, message",
+        "application, reflection, meditation",
+        "also these things directed to business"
+      ],
+      "summary": "Fair young man, one impelled to render service and with whom the Querent will be connected; a studious youth; news, message; application, reflection, meditation; also these things directed to business.",
+      "summaryModern": "A gentle invitation to explore your emotions and creativity. Follow your intuition with an open heart."
+    },
+    "reversed": {
+      "keywords": [
+        "Taste, inclination, attachment, seduction, deception, artifice"
+      ],
+      "summary": "Taste, inclination, attachment, seduction, deception, artifice.",
+      "summaryModern": "Emotional immaturity or creative block. You may be escaping into fantasy rather than feeling."
+    },
+    "name": "Page of Cups"
+  },
+  {
+    "id": "cups-knight",
+    "arcana": "minor",
+    "suit": "cups",
+    "number": 12,
+    "upright": {
+      "keywords": [
+        "Arrival, approach--sometimes that of a messenger",
+        "advances, proposition, demeanour, invitation, incitement"
+      ],
+      "summary": "Arrival, approach--sometimes that of a messenger; advances, proposition, demeanour, invitation, incitement.",
+      "summaryModern": "A romantic or creative invitation arrives. Follow your heart with grace and idealism."
+    },
+    "reversed": {
+      "keywords": [
+        "Trickery, artifice, subtlety, swindling, duplicity, fraud"
+      ],
+      "summary": "Trickery, artifice, subtlety, swindling, duplicity, fraud.",
+      "summaryModern": "Jealousy or disappointment. The fantasy is colliding with reality — adjust your expectations."
+    },
+    "name": "Knight of Cups"
+  },
+  {
+    "id": "cups-queen",
+    "arcana": "minor",
+    "suit": "cups",
+    "number": 13,
+    "upright": {
+      "keywords": [
+        "Good, fair woman",
+        "honest, devoted woman, who will do service to the Querent",
+        "loving intelligence, and hence the gift of vision",
+        "success, happiness, pleasure",
+        "also wisdom, virtue",
+        "a perfect spouse and a good mother"
+      ],
+      "summary": "Good, fair woman; honest, devoted woman, who will do service to the Querent; loving intelligence, and hence the gift of vision; success, happiness, pleasure; also wisdom, virtue; a perfect spouse and a good mother.",
+      "summaryModern": "Deep emotional wisdom and compassion. Your empathetic presence heals and nurtures those around you."
+    },
+    "reversed": {
+      "keywords": [
+        "The accounts vary",
+        "good woman",
+        "otherwise, distinguished woman but one not to be trusted",
+        "perverse woman",
+        "vice, dishonour, depravity"
+      ],
+      "summary": "The accounts vary; good woman; otherwise, distinguished woman but one not to be trusted; perverse woman; vice, dishonour, depravity.",
+      "summaryModern": "Emotional insecurity or martyrdom. Your kindness has turned into self-neglect."
+    },
+    "name": "Queen of Cups"
+  },
+  {
+    "id": "cups-king",
+    "arcana": "minor",
+    "suit": "cups",
+    "number": 14,
+    "upright": {
+      "keywords": [
+        "Fair man, man of business, law, or divinity",
+        "responsible, disposed to oblige the Querent",
+        "also equity, art and science, including those who profess science, law and art",
+        "creative intelligence"
+      ],
+      "summary": "Fair man, man of business, law, or divinity; responsible, disposed to oblige the Querent; also equity, art and science, including those who profess science, law and art; creative intelligence.",
+      "summaryModern": "Emotional maturity and calm authority. You balance heart and mind with wisdom and composure."
+    },
+    "reversed": {
+      "keywords": [
+        "Dishonest, double-dealing man",
+        "roguery, exaction, injustice, vice, scandal, pillage, considerable loss"
+      ],
+      "summary": "Dishonest, double-dealing man; roguery, exaction, injustice, vice, scandal, pillage, considerable loss.",
+      "summaryModern": "Emotional repression or manipulation. Volatility lurks beneath a controlled surface."
+    },
+    "name": "King of Cups"
+  },
+  {
+    "id": "cups-ace",
+    "arcana": "minor",
+    "suit": "cups",
+    "number": 1,
+    "upright": {
+      "keywords": [
+        "House of the true heart, joy, content, abode, nourishment, abundance, fertility",
+        "Holy Table, felicity hereof"
+      ],
+      "summary": "House of the true heart, joy, content, abode, nourishment, abundance, fertility; Holy Table, felicity hereof.",
+      "summaryModern": "An overflowing of love, joy, and emotional openness. Your heart is full — share it freely."
+    },
+    "reversed": {
+      "keywords": [
+        "House of the false heart, mutation, instability, revolution"
+      ],
+      "summary": "House of the false heart, mutation, instability, revolution.",
+      "summaryModern": "Emotional blockage or emptiness. Your heart may feel closed — tend to it gently."
+    },
+    "name": "Ace of Cups"
+  },
+  {
+    "id": "cups-02",
+    "arcana": "minor",
+    "suit": "cups",
+    "number": 2,
+    "upright": {
+      "keywords": [
+        "Love, passion, friendship, affinity, union, concord, sympathy, the interrelation of the sexes, and--as a suggestion apart from all offices of divination--that desire which is not in Nature, but by which Nature is sanctified"
+      ],
+      "summary": "Love, passion, friendship, affinity, union, concord, sympathy, the interrelation of the sexes, and--as a suggestion apart from all offices of divination--that desire which is not in Nature, but by which Nature is sanctified.",
+      "summaryModern": "A deep connection forms — romantic, platonic, or creative. Mutual respect and attraction create harmony."
+    },
+    "reversed": {
+      "keywords": [
+        "Lust, cupidity, jealousy, wish, desire, but the card may also give, says W",
+        ", \"that desire which is not in nature, but by which nature is sanctified"
+      ],
+      "summary": "Lust, cupidity, jealousy, wish, desire, but the card may also give, says W., \"that desire which is not in nature, but by which nature is sanctified.\"",
+      "summaryModern": "Imbalance or separation. The connection is strained — communication is needed."
+    },
+    "name": "Two of Cups"
+  },
+  {
+    "id": "cups-03",
+    "arcana": "minor",
+    "suit": "cups",
+    "number": 3,
+    "upright": {
+      "keywords": [
+        "The conclusion of any matter in plenty, perfection and merriment",
+        "happy issue, victory, fulfilment, solace, healing,"
+      ],
+      "summary": "The conclusion of any matter in plenty, perfection and merriment; happy issue, victory, fulfilment, solace, healing,",
+      "summaryModern": "Celebration, friendship, and joy. Gather with those who lift you up and share your happiness."
+    },
+    "reversed": {
+      "keywords": [
+        "Expedition, dispatch, achievement, end",
+        "It signifies also the side of excess in physical enjoyment, and the pleasures of the senses"
+      ],
+      "summary": "Expedition, dispatch, achievement, end. It signifies also the side of excess in physical enjoyment, and the pleasures of the senses.",
+      "summaryModern": "Overindulgence or social drama. The merrymaking has gone too far — check your boundaries."
+    },
+    "name": "Three of Cups"
+  },
+  {
+    "id": "cups-04",
+    "arcana": "minor",
+    "suit": "cups",
+    "number": 4,
+    "upright": {
+      "keywords": [
+        "Weariness, disgust, aversion, imaginary vexations, as if the wine of this world had caused satiety only",
+        "another wine, as if a fairy gift, is now offered the wastrel, but he sees no consolation therein",
+        "This is also a card of blended pleasure"
+      ],
+      "summary": "Weariness, disgust, aversion, imaginary vexations, as if the wine of this world had caused satiety only; another wine, as if a fairy gift, is now offered the wastrel, but he sees no consolation therein. This is also a card of blended pleasure.",
+      "summaryModern": "Apathy and contemplation. You are dissatisfied with what is offered — but you may be overlooking a real opportunity."
+    },
+    "reversed": {
+      "keywords": [
+        "Novelty, presage, new instruction, new relations"
+      ],
+      "summary": "Novelty, presage, new instruction, new relations.",
+      "summaryModern": "A renewed sense of purpose. You are snapping out of your rut and seeing new possibilities."
+    },
+    "name": "Four of Cups"
+  },
+  {
+    "id": "cups-05",
+    "arcana": "minor",
+    "suit": "cups",
+    "number": 5,
+    "upright": {
+      "keywords": [
+        "A dark, cloaked figure, looking sideways at three prone cups two others stand upright behind him",
+        "a bridge is in the background, leading to a small keep or holding",
+        "Divanatory Meanings: It is a card of loss, but something remains over",
+        "three have been taken, but two are left",
+        "it is a card of inheritance, patrimony, transmission, but not corresponding to expectations",
+        "with some interpreters it is a card of marriage, but not without bitterness or frustration"
+      ],
+      "summary": "A dark, cloaked figure, looking sideways at three prone cups two others stand upright behind him; a bridge is in the background, leading to a small keep or holding. Divanatory Meanings: It is a card of loss, but something remains over; three have been taken, but two are left; it is a card of inheritance, patrimony, transmission, but not corresponding to expectations; with some interpreters it is a card of marriage, but not without bitterness or frustration.",
+      "summaryModern": "Loss and disappointment. You are focused on what is spilled — but look up; there is still much that remains."
+    },
+    "reversed": {
+      "keywords": [
+        "News, alliances, affinity, consanguinity, ancestry, return, false projects"
+      ],
+      "summary": "News, alliances, affinity, consanguinity, ancestry, return, false projects.",
+      "summaryModern": "Healing and acceptance. The grief is beginning to ease — it is time to move forward."
+    },
+    "name": "Five of Cups"
+  },
+  {
+    "id": "cups-06",
+    "arcana": "minor",
+    "suit": "cups",
+    "number": 6,
+    "upright": {
+      "keywords": [
+        "A card of the past and of memories, looking back, as--for example--on childhood",
+        "happiness, enjoyment, but coming rather from the past",
+        "things that have vanished",
+        "Another reading reverses this, giving new relations, new knowledge, new environment, and then the children are disporting in an unfamiliar precinct"
+      ],
+      "summary": "A card of the past and of memories, looking back, as--for example--on childhood; happiness, enjoyment, but coming rather from the past; things that have vanished. Another reading reverses this, giving new relations, new knowledge, new environment, and then the children are disporting in an unfamiliar precinct.",
+      "summaryModern": "Nostalgia and happy memories. Reconnect with the past — but don't live there."
+    },
+    "reversed": {
+      "keywords": [
+        "The future, renewal, that which will come to pass presently"
+      ],
+      "summary": "The future, renewal, that which will come to pass presently.",
+      "summaryModern": "Stuck in the past. The comfort of memory has become a cage — it is time to move on."
+    },
+    "name": "Six of Cups"
+  },
+  {
+    "id": "cups-07",
+    "arcana": "minor",
+    "suit": "cups",
+    "number": 7,
+    "upright": {
+      "keywords": [
+        "Fairy favours, images of reflection, sentiment, imagination, things seen in the glass of contemplation",
+        "some attainment in these degrees, but nothing permanent or substantial is suggested"
+      ],
+      "summary": "Fairy favours, images of reflection, sentiment, imagination, things seen in the glass of contemplation; some attainment in these degrees, but nothing permanent or substantial is suggested.",
+      "summaryModern": "Many tempting options appear — but not all are real. Choose with clarity, not fantasy."
+    },
+    "reversed": {
+      "keywords": [
+        "Desire, will, determination, project"
+      ],
+      "summary": "Desire, will, determination, project.",
+      "summaryModern": "Focus and commitment. The haze is clearing — you are ready to choose one real path."
+    },
+    "name": "Seven of Cups"
+  },
+  {
+    "id": "cups-08",
+    "arcana": "minor",
+    "suit": "cups",
+    "number": 8,
+    "upright": {
+      "keywords": [
+        "The card speaks for itself on the surface, but other readings are entirely antithetical--giving joy, mildness, timidity, honour, modesty",
+        "In practice, it is usually found that the card shews the decline of a matter, or that a matter which has been thought to be important is really of slight consequence--either for good or evil"
+      ],
+      "summary": "The card speaks for itself on the surface, but other readings are entirely antithetical--giving joy, mildness, timidity, honour, modesty. In practice, it is usually found that the card shews the decline of a matter, or that a matter which has been thought to be important is really of slight consequence--either for good or evil.",
+      "summaryModern": "Walking away from what no longer serves you. A deeper truth calls — follow it, even if it means leaving comfort behind."
+    },
+    "reversed": {
+      "keywords": [
+        "Great joy, happiness, feasting"
+      ],
+      "summary": "Great joy, happiness, feasting.",
+      "summaryModern": "Fear of change keeps you stuck. You know you need to leave but cannot bring yourself to do it."
+    },
+    "name": "Eight of Cups"
+  },
+  {
+    "id": "cups-09",
+    "arcana": "minor",
+    "suit": "cups",
+    "number": 9,
+    "upright": {
+      "keywords": [
+        "Concord, contentment, physical bien-être",
+        "also victory, success, advantage",
+        "satisfaction for the Querent or person for whom the consultation is made"
+      ],
+      "summary": "Concord, contentment, physical bien-être; also victory, success, advantage; satisfaction for the Querent or person for whom the consultation is made.",
+      "summaryModern": "Contentment and wish fulfillment. You have what you wished for — savor it with gratitude."
+    },
+    "reversed": {
+      "keywords": [
+        "Truth, loyalty, liberty",
+        "but the readings vary and include mistakes, imperfections, etc"
+      ],
+      "summary": "Truth, loyalty, liberty; but the readings vary and include mistakes, imperfections, etc.",
+      "summaryModern": "Inner dissatisfaction despite outer success. Something is still missing — look within."
+    },
+    "name": "Nine of Cups"
+  },
+  {
+    "id": "cups-10",
+    "arcana": "minor",
+    "suit": "cups",
+    "number": 10,
+    "upright": {
+      "keywords": [
+        "Contentment, repose of the entire heart",
+        "the perfection of that state",
+        "also perfection of human love and friendship",
+        "if with several picture-cards, a person who is taking charge of the Querent's interests",
+        "also the town, village or country inhabited by the Querent"
+      ],
+      "summary": "Contentment, repose of the entire heart; the perfection of that state; also perfection of human love and friendship; if with several picture-cards, a person who is taking charge of the Querent's interests; also the town, village or country inhabited by the Querent.",
+      "summaryModern": "Emotional fulfillment, lasting happiness, and domestic harmony. This is the heart's true home."
+    },
+    "reversed": {
+      "keywords": [
+        "Repose of the false heart, indignation, violence"
+      ],
+      "summary": "Repose of the false heart, indignation, violence.",
+      "summaryModern": "Family tension or unfulfilled dreams. The ideal feels out of reach — address the cracks."
+    },
+    "name": "Ten of Cups"
+  },
+  {
+    "id": "pentacles-page",
+    "arcana": "minor",
+    "suit": "pentacles",
+    "number": 11,
+    "upright": {
+      "keywords": [
+        "Application, study, scholarship, reflection another reading says news, messages and the bringer thereof",
+        "also rule, management"
+      ],
+      "summary": "Application, study, scholarship, reflection another reading says news, messages and the bringer thereof; also rule, management.",
+      "summaryModern": "A new practical study or project begins. Apply yourself with discipline and curiosity — mastery takes time."
+    },
+    "reversed": {
+      "keywords": [
+        "Prodigality, dissipation, liberality, luxury",
+        "unfavourable news"
+      ],
+      "summary": "Prodigality, dissipation, liberality, luxury; unfavourable news.",
+      "summaryModern": "Procrastination or lack of commitment. Good intentions are not turning into action."
+    },
+    "name": "Page of Pentacles"
+  },
+  {
+    "id": "pentacles-knight",
+    "arcana": "minor",
+    "suit": "pentacles",
+    "number": 12,
+    "upright": {
+      "keywords": [
+        "Utility, serviceableness, interest, responsibility, rectitude-all on the normal and external plane"
+      ],
+      "summary": "Utility, serviceableness, interest, responsibility, rectitude-all on the normal and external plane.",
+      "summaryModern": "Steady, reliable, methodical progress. Slow and consistent wins the race — trust the process."
+    },
+    "reversed": {
+      "keywords": [
+        "inertia, idleness, repose of that kind, stagnation",
+        "also placidity, discouragement, carelessness"
+      ],
+      "summary": "inertia, idleness, repose of that kind, stagnation; also placidity, discouragement, carelessness.",
+      "summaryModern": "Stagnation or boredom. The steady pace has become a rut — shake things up."
+    },
+    "name": "Knight of Pentacles"
+  },
+  {
+    "id": "pentacles-queen",
+    "arcana": "minor",
+    "suit": "pentacles",
+    "number": 13,
+    "upright": {
+      "keywords": [
+        "Opulence, generosity, magnificence, security, liberty"
+      ],
+      "summary": "Opulence, generosity, magnificence, security, liberty.",
+      "summaryModern": "Practical, nurturing abundance. Create a warm and secure environment with grounded generosity."
+    },
+    "reversed": {
+      "keywords": [
+        "Evil, suspicion, suspense, fear, mistrust"
+      ],
+      "summary": "Evil, suspicion, suspense, fear, mistrust.",
+      "summaryModern": "Financial insecurity or overwork. Care for others has come at the cost of caring for yourself."
+    },
+    "name": "Queen of Pentacles"
+  },
+  {
+    "id": "pentacles-king",
+    "arcana": "minor",
+    "suit": "pentacles",
+    "number": 14,
+    "upright": {
+      "keywords": [
+        "Valour, realizing intelligence, business and normal intellectual aptitude, sometimes mathematical gifts and attainments of this kind",
+        "success in these paths"
+      ],
+      "summary": "Valour, realizing intelligence, business and normal intellectual aptitude, sometimes mathematical gifts and attainments of this kind; success in these paths.",
+      "summaryModern": "You have built lasting security and success. Lead with generosity, stability, and grounded wisdom."
+    },
+    "reversed": {
+      "keywords": [
+        "Vice, weakness, ugliness, perversity, corruption, peril"
+      ],
+      "summary": "Vice, weakness, ugliness, perversity, corruption, peril.",
+      "summaryModern": "Greed or financial mismanagement. Material success has come at a moral or relational cost."
+    },
+    "name": "King of Pentacles"
+  },
+  {
+    "id": "pentacles-ace",
+    "arcana": "minor",
+    "suit": "pentacles",
+    "number": 1,
+    "upright": {
+      "keywords": [
+        "Perfect contentment, felicity, ecstasy",
+        "also speedy intelligence",
+        "gold"
+      ],
+      "summary": "Perfect contentment, felicity, ecstasy; also speedy intelligence; gold.",
+      "summaryModern": "A new financial or material opportunity presents itself. A seed has been planted — nurture it with practical effort."
+    },
+    "reversed": {
+      "keywords": [
+        "The evil side of wealth, bad intelligence",
+        "also great riches",
+        "In any case it shews prosperity, comfortable material conditions, but whether these are of advantage to the possessor will depend on whether the card is reversed or not"
+      ],
+      "summary": "The evil side of wealth, bad intelligence; also great riches. In any case it shews prosperity, comfortable material conditions, but whether these are of advantage to the possessor will depend on whether the card is reversed or not.",
+      "summaryModern": "A missed opportunity or unstable foundation. Reassess your plans before investing further."
+    },
+    "name": "Ace of Pentacles"
+  },
+  {
+    "id": "pentacles-02",
+    "arcana": "minor",
+    "suit": "pentacles",
+    "number": 2,
+    "upright": {
+      "keywords": [
+        "On the one hand it is represented as a card of gaiety, recreation and its connexions, which is the subject of the design",
+        "but it is read also as news and messages in writing, as obstacles, agitation, trouble, embroilment"
+      ],
+      "summary": "On the one hand it is represented as a card of gaiety, recreation and its connexions, which is the subject of the design; but it is read also as news and messages in writing, as obstacles, agitation, trouble, embroilment.",
+      "summaryModern": "Juggling multiple priorities. Stay flexible and maintain balance — you can handle it, but not forever."
+    },
+    "reversed": {
+      "keywords": [
+        "Enforced gaiety, simulated enjoyment, literal sense, handwriting, composition, letters of exchange"
+      ],
+      "summary": "Enforced gaiety, simulated enjoyment, literal sense, handwriting, composition, letters of exchange.",
+      "summaryModern": "Overwhelmed and dropping balls. Prioritize — you cannot do everything at once."
+    },
+    "name": "Two of Pentacles"
+  },
+  {
+    "id": "pentacles-03",
+    "arcana": "minor",
+    "suit": "pentacles",
+    "number": 3,
+    "upright": {
+      "keywords": [
+        "Métier, trade, skilled labour",
+        "usually, however, regarded as a card of nobility, aristocracy, renown, glory"
+      ],
+      "summary": "Métier, trade, skilled labour; usually, however, regarded as a card of nobility, aristocracy, renown, glory.",
+      "summaryModern": "Collaboration and skill-building. Great work happens when you learn from others and contribute your best."
+    },
+    "reversed": {
+      "keywords": [
+        "Mediocrity, in work and otherwise, puerility, pettiness, weakness"
+      ],
+      "summary": "Mediocrity, in work and otherwise, puerility, pettiness, weakness.",
+      "summaryModern": "Lack of teamwork or misalignment. The group is not working well together — address the gaps."
+    },
+    "name": "Three of Pentacles"
+  },
+  {
+    "id": "pentacles-04",
+    "arcana": "minor",
+    "suit": "pentacles",
+    "number": 4,
+    "upright": {
+      "keywords": [
+        "The surety of possessions, cleaving to that which one has, gift, legacy, inheritance"
+      ],
+      "summary": "The surety of possessions, cleaving to that which one has, gift, legacy, inheritance.",
+      "summaryModern": "Holding tight to what you have. Security matters — but don't let fear of loss prevent generosity."
+    },
+    "reversed": {
+      "keywords": [
+        "Suspense, delay, opposition"
+      ],
+      "summary": "Suspense, delay, opposition.",
+      "summaryModern": "Greed or material obsession. Your grip is loosening — willingly or not, it is time to share."
+    },
+    "name": "Four of Pentacles"
+  },
+  {
+    "id": "pentacles-05",
+    "arcana": "minor",
+    "suit": "pentacles",
+    "number": 5,
+    "upright": {
+      "keywords": [
+        "The card foretells material trouble above all, whether in the form illustrated--that is, destitution--or otherwise",
+        "For some cartomancists, it is a card of love and lovers-wife, husband, friend, mistress",
+        "also concordance, affinities",
+        "These alternatives cannot be harmonized"
+      ],
+      "summary": "The card foretells material trouble above all, whether in the form illustrated--that is, destitution--or otherwise. For some cartomancists, it is a card of love and lovers-wife, husband, friend, mistress; also concordance, affinities. These alternatives cannot be harmonized.",
+      "summaryModern": "A time of hardship or feeling left out in the cold. Help is available — do not isolate yourself."
+    },
+    "reversed": {
+      "keywords": [
+        "Disorder, chaos, ruin, discord, profligacy"
+      ],
+      "summary": "Disorder, chaos, ruin, discord, profligacy.",
+      "summaryModern": "Recovery from difficult times. Support is arriving — the worst of the material struggle is over."
+    },
+    "name": "Five of Pentacles"
+  },
+  {
+    "id": "pentacles-06",
+    "arcana": "minor",
+    "suit": "pentacles",
+    "number": 6,
+    "upright": {
+      "keywords": [
+        "Presents, gifts, gratification another account says attention, vigilance now is the accepted time, present prosperity, etc"
+      ],
+      "summary": "Presents, gifts, gratification another account says attention, vigilance now is the accepted time, present prosperity, etc.",
+      "summaryModern": "Generosity and sharing. Give and receive with an open hand — balanced exchange creates harmony."
+    },
+    "reversed": {
+      "keywords": [
+        "Desire, cupidity, envy, jealousy, illusion"
+      ],
+      "summary": "Desire, cupidity, envy, jealousy, illusion.",
+      "summaryModern": "Power imbalance or strings attached. Generosity has turned into control or dependency."
+    },
+    "name": "Six of Pentacles"
+  },
+  {
+    "id": "pentacles-07",
+    "arcana": "minor",
+    "suit": "pentacles",
+    "number": 7,
+    "upright": {
+      "keywords": [
+        "These are exceedingly contradictory",
+        "in the main, it is a card of money, business, barter",
+        "but one reading gives altercation, quarrels--and another innocence, ingenuity, purgation"
+      ],
+      "summary": "These are exceedingly contradictory; in the main, it is a card of money, business, barter; but one reading gives altercation, quarrels--and another innocence, ingenuity, purgation.",
+      "summaryModern": "Step back and assess your progress. Your investment is growing — patience is required."
+    },
+    "reversed": {
+      "keywords": [
+        "Cause for anxiety regarding money which it may be proposed to lend"
+      ],
+      "summary": "Cause for anxiety regarding money which it may be proposed to lend.",
+      "summaryModern": "Impatience or wasted effort. Results are not matching expectations — reconsider this path."
+    },
+    "name": "Seven of Pentacles"
+  },
+  {
+    "id": "pentacles-08",
+    "arcana": "minor",
+    "suit": "pentacles",
+    "number": 8,
+    "upright": {
+      "keywords": [
+        "Work, employment, commission, craftsmanship, skill in craft and business, perhaps in the preparatory stage"
+      ],
+      "summary": "Work, employment, commission, craftsmanship, skill in craft and business, perhaps in the preparatory stage.",
+      "summaryModern": "Diligent work and skill mastery. Focus on your craft with dedication — expertise is built one step at a time."
+    },
+    "reversed": {
+      "keywords": [
+        "Voided ambition, vanity, cupidity, exaction, usury",
+        "It may also signify the possession of skill, in the sense of the ingenious mind turned to cunning and intrigue"
+      ],
+      "summary": "Voided ambition, vanity, cupidity, exaction, usury. It may also signify the possession of skill, in the sense of the ingenious mind turned to cunning and intrigue.",
+      "summaryModern": "Perfectionism or lack of motivation. Your drive to improve has stalled — find purpose in the process."
+    },
+    "name": "Eight of Pentacles"
+  },
+  {
+    "id": "pentacles-09",
+    "arcana": "minor",
+    "suit": "pentacles",
+    "number": 9,
+    "upright": {
+      "keywords": [
+        "Prudence, safety, success, accomplishment, certitude, discernment"
+      ],
+      "summary": "Prudence, safety, success, accomplishment, certitude, discernment.",
+      "summaryModern": "Abundance and self-sufficiency. You have cultivated a rich, independent life — enjoy it."
+    },
+    "reversed": {
+      "keywords": [
+        "Roguery, deception, voided project, bad faith"
+      ],
+      "summary": "Roguery, deception, voided project, bad faith.",
+      "summaryModern": "Financial setback or superficial success. Comfort has come at the cost of genuine connection."
+    },
+    "name": "Nine of Pentacles"
+  },
+  {
+    "id": "pentacles-10",
+    "arcana": "minor",
+    "suit": "pentacles",
+    "number": 10,
+    "upright": {
+      "keywords": [
+        "Gain, riches",
+        "family matters, archives, extraction, the abode of a family"
+      ],
+      "summary": "Gain, riches; family matters, archives, extraction, the abode of a family.",
+      "summaryModern": "A lasting legacy of family, tradition, and prosperity. Long-term stability and shared wealth take root."
+    },
+    "reversed": {
+      "keywords": [
+        "Chance, fatality, loss, robbery, games of hazard",
+        "sometimes gift, dowry, pension"
+      ],
+      "summary": "Chance, fatality, loss, robbery, games of hazard; sometimes gift, dowry, pension.",
+      "summaryModern": "Family conflict or broken legacy. The foundation is cracking — attend to what matters most."
+    },
+    "name": "Ten of Pentacles"
+  },
+  {
+    "id": "swords-page",
+    "arcana": "minor",
+    "suit": "swords",
+    "number": 11,
+    "upright": {
+      "keywords": [
+        "Authority, overseeing, secret service, vigilance, spying, examination, and the qualities thereto belonging"
+      ],
+      "summary": "Authority, overseeing, secret service, vigilance, spying, examination, and the qualities thereto belonging.",
+      "summaryModern": "Curiosity and sharp thinking. Speak up, ask questions, and pursue the truth with intellectual energy."
+    },
+    "reversed": {
+      "keywords": [
+        "More evil side of these qualities",
+        "what is unforeseen, unprepared state",
+        "sickness is also intimated"
+      ],
+      "summary": "More evil side of these qualities; what is unforeseen, unprepared state; sickness is also intimated.",
+      "summaryModern": "Hasty words or gossip. Think before you speak — your words carry more weight than you realize."
+    },
+    "name": "Page of Swords"
+  },
+  {
+    "id": "swords-knight",
+    "arcana": "minor",
+    "suit": "swords",
+    "number": 12,
+    "upright": {
+      "keywords": [
+        "Skill, bravery, capacity, defence, address, enmity, wrath, war, destruction, opposition, resistance, ruin",
+        "There is therefore a sense in which the card signifies death, but it carries this meaning only in its proximity to other cards of fatality"
+      ],
+      "summary": "Skill, bravery, capacity, defence, address, enmity, wrath, war, destruction, opposition, resistance, ruin. There is therefore a sense in which the card signifies death, but it carries this meaning only in its proximity to other cards of fatality.",
+      "summaryModern": "Swift, decisive action driven by intellect. Charge forward — but remember to look before you leap."
+    },
+    "reversed": {
+      "keywords": [
+        "Imprudence, incapacity, extravagance"
+      ],
+      "summary": "Imprudence, incapacity, extravagance.",
+      "summaryModern": "Scattered focus or aggression. You are moving too fast without a clear direction."
+    },
+    "name": "Knight of Swords"
+  },
+  {
+    "id": "swords-queen",
+    "arcana": "minor",
+    "suit": "swords",
+    "number": 13,
+    "upright": {
+      "keywords": [
+        "Widowhood, female sadness and embarrassment, absence, sterility, mourning, privation, separation"
+      ],
+      "summary": "Widowhood, female sadness and embarrassment, absence, sterility, mourning, privation, separation.",
+      "summaryModern": "Clear perception and honest communication. See through the noise and speak your truth with precision."
+    },
+    "reversed": {
+      "keywords": [
+        "Malice, bigotry, artifice, prudery, bale, deceit"
+      ],
+      "summary": "Malice, bigotry, artifice, prudery, bale, deceit.",
+      "summaryModern": "Coldness or harsh judgment. Clarity without compassion becomes cruelty."
+    },
+    "name": "Queen of Swords"
+  },
+  {
+    "id": "swords-king",
+    "arcana": "minor",
+    "suit": "swords",
+    "number": 14,
+    "upright": {
+      "keywords": [
+        "Whatsoever arises out of the idea of judgment and all its connexions-power, command, authority, militant intelligence, law, offices of the crown, and so forth"
+      ],
+      "summary": "Whatsoever arises out of the idea of judgment and all its connexions-power, command, authority, militant intelligence, law, offices of the crown, and so forth.",
+      "summaryModern": "Intellectual authority and ethical clarity. Lead with truth, fairness, and a sharp, principled mind."
+    },
+    "reversed": {
+      "keywords": [
+        "Cruelty, perversity, barbarity, perfidy, evil intention"
+      ],
+      "summary": "Cruelty, perversity, barbarity, perfidy, evil intention.",
+      "summaryModern": "Dogmatism or abuse of power. Rigid thinking and cold logic have replaced true wisdom."
+    },
+    "name": "King of Swords"
+  },
+  {
+    "id": "swords-ace",
+    "arcana": "minor",
+    "suit": "swords",
+    "number": 1,
+    "upright": {
+      "keywords": [
+        "Triumph, the excessive degree in everything, conquest, triumph of force",
+        "It is a card of great force, in love as well as in hatred",
+        "The crown may carry a much higher significance than comes usually within the sphere of fortune-telling"
+      ],
+      "summary": "Triumph, the excessive degree in everything, conquest, triumph of force. It is a card of great force, in love as well as in hatred. The crown may carry a much higher significance than comes usually within the sphere of fortune-telling.",
+      "summaryModern": "A breakthrough of clarity and truth. Cut through confusion and act with precision and conviction."
+    },
+    "reversed": {
+      "keywords": [
+        "The same, but the results are disastrous",
+        "another account says--conception, childbirth, augmentation, multiplicity"
+      ],
+      "summary": "The same, but the results are disastrous; another account says--conception, childbirth, augmentation, multiplicity.",
+      "summaryModern": "Confusion or miscommunication. The truth is clouded — seek clarity before acting."
+    },
+    "name": "Ace of Swords"
+  },
+  {
+    "id": "swords-02",
+    "arcana": "minor",
+    "suit": "swords",
+    "number": 2,
+    "upright": {
+      "keywords": [
+        "Conformity and the equipoise which it suggests, courage, friendship, concord in a state of arms",
+        "another reading gives tenderness, affection, intimacy",
+        "The suggestion of harmony and other favourable readings must be considered in a qualified manner, as Swords generally are not symbolical of beneficent forces in human affairs"
+      ],
+      "summary": "Conformity and the equipoise which it suggests, courage, friendship, concord in a state of arms; another reading gives tenderness, affection, intimacy. The suggestion of harmony and other favourable readings must be considered in a qualified manner, as Swords generally are not symbolical of beneficent forces in human affairs.",
+      "summaryModern": "A difficult decision lies before you. You are avoiding the facts — but choosing is the only way forward."
+    },
+    "reversed": {
+      "keywords": [
+        "Imposture, falsehood, duplicity, disloyalty"
+      ],
+      "summary": "Imposture, falsehood, duplicity, disloyalty.",
+      "summaryModern": "Information overload or a no-win situation. The stalemate is breaking — truth is emerging."
+    },
+    "name": "Two of Swords"
+  },
+  {
+    "id": "swords-03",
+    "arcana": "minor",
+    "suit": "swords",
+    "number": 3,
+    "upright": {
+      "keywords": [
+        "Removal, absence, delay, division, rupture, dispersion, and all that the design signifies naturally, being too simple and obvious to call for specific enumeration"
+      ],
+      "summary": "Removal, absence, delay, division, rupture, dispersion, and all that the design signifies naturally, being too simple and obvious to call for specific enumeration.",
+      "summaryModern": "Heartbreak, grief, or painful truth. Allow yourself to feel the pain — healing begins with acknowledgment."
+    },
+    "reversed": {
+      "keywords": [
+        "Mental alienation, error, loss, distraction, disorder, confusion"
+      ],
+      "summary": "Mental alienation, error, loss, distraction, disorder, confusion.",
+      "summaryModern": "Recovery from grief. The worst is passing — forgiveness and healing are becoming possible."
+    },
+    "name": "Three of Swords"
+  },
+  {
+    "id": "swords-04",
+    "arcana": "minor",
+    "suit": "swords",
+    "number": 4,
+    "upright": {
+      "keywords": [
+        "Vigilance, retreat, solitude, hermit's repose, exile, tomb and coffin",
+        "It is these last that have suggested the design"
+      ],
+      "summary": "Vigilance, retreat, solitude, hermit's repose, exile, tomb and coffin. It is these last that have suggested the design.",
+      "summaryModern": "Rest and recovery. Your mind needs stillness — step back, retreat, and recharge before moving forward."
+    },
+    "reversed": {
+      "keywords": [
+        "Wise administration, circumspection, economy, avarice, precaution, testament"
+      ],
+      "summary": "Wise administration, circumspection, economy, avarice, precaution, testament.",
+      "summaryModern": "Restlessness and burnout. You are pushing too hard too soon — the rest you avoided will catch up with you."
+    },
+    "name": "Four of Swords"
+  },
+  {
+    "id": "swords-05",
+    "arcana": "minor",
+    "suit": "swords",
+    "number": 5,
+    "upright": {
+      "keywords": [
+        "Degradation, destruction, revocation, infamy, dishonour, loss, with the variants and analogues of these"
+      ],
+      "summary": "Degradation, destruction, revocation, infamy, dishonour, loss, with the variants and analogues of these.",
+      "summaryModern": "Conflict and tension. Winning at someone else's cost leaves a bitter taste — choose your battles wisely."
+    },
+    "reversed": {
+      "keywords": [
+        "The same",
+        "burial and obsequies"
+      ],
+      "summary": "The same; burial and obsequies.",
+      "summaryModern": "Reconciliation or regret. The dust is settling — consider making peace rather than holding a grudge."
+    },
+    "name": "Five of Swords"
+  },
+  {
+    "id": "swords-06",
+    "arcana": "minor",
+    "suit": "swords",
+    "number": 6,
+    "upright": {
+      "keywords": [
+        "Journey by water, route, way, envoy, commissionary, expedient"
+      ],
+      "summary": "Journey by water, route, way, envoy, commissionary, expedient.",
+      "summaryModern": "A journey toward calmer waters. Leave behind what cannot stay and move forward into a more peaceful place."
+    },
+    "reversed": {
+      "keywords": [
+        "Declaration, confession, publicity",
+        "one account says that it is a proposal of love"
+      ],
+      "summary": "Declaration, confession, publicity; one account says that it is a proposal of love.",
+      "summaryModern": "Stuck in transition. Unresolved emotions are preventing you from crossing to the next shore."
+    },
+    "name": "Six of Swords"
+  },
+  {
+    "id": "swords-07",
+    "arcana": "minor",
+    "suit": "swords",
+    "number": 7,
+    "upright": {
+      "keywords": [
+        "Design, attempt, wish, hope, confidence",
+        "also quarrelling, a plan that may fail, annoyance",
+        "The design is uncertain in its import, because the significations are widely at variance with each other"
+      ],
+      "summary": "Design, attempt, wish, hope, confidence; also quarrelling, a plan that may fail, annoyance. The design is uncertain in its import, because the significations are widely at variance with each other.",
+      "summaryModern": "Deception or strategy at play. Not everything is as it seems — be careful who you trust."
+    },
+    "reversed": {
+      "keywords": [
+        "Good advice, counsel, instruction, slander, babbling"
+      ],
+      "summary": "Good advice, counsel, instruction, slander, babbling.",
+      "summaryModern": "The truth is coming out. Confession and honesty are the better path now."
+    },
+    "name": "Seven of Swords"
+  },
+  {
+    "id": "swords-08",
+    "arcana": "minor",
+    "suit": "swords",
+    "number": 8,
+    "upright": {
+      "keywords": [
+        "Bad news, violent chagrin, crisis, censure, power in trammels, conflict, calumny",
+        "also sickness"
+      ],
+      "summary": "Bad news, violent chagrin, crisis, censure, power in trammels, conflict, calumny; also sickness.",
+      "summaryModern": "You feel trapped — but the prison is in your mind. Change your perspective and you will find the way out."
+    },
+    "reversed": {
+      "keywords": [
+        "Disquiet, difficulty, opposition, accident, treachery",
+        "what is unforeseen",
+        "fatality"
+      ],
+      "summary": "Disquiet, difficulty, opposition, accident, treachery; what is unforeseen; fatality.",
+      "summaryModern": "The blindfold is coming off. You are realizing the limits were self-imposed."
+    },
+    "name": "Eight of Swords"
+  },
+  {
+    "id": "swords-09",
+    "arcana": "minor",
+    "suit": "swords",
+    "number": 9,
+    "upright": {
+      "keywords": [
+        "Death, failure, miscarriage, delay, deception, disappointment, despair"
+      ],
+      "summary": "Death, failure, miscarriage, delay, deception, disappointment, despair.",
+      "summaryModern": "Fear and anxiety fill your mind at night. The worst-case scenario is rarely what actually happens."
+    },
+    "reversed": {
+      "keywords": [
+        "Imprisonment, suspicion, doubt, reasonable fear, shame"
+      ],
+      "summary": "Imprisonment, suspicion, doubt, reasonable fear, shame.",
+      "summaryModern": "Recovery from fear. The darkest moment is passing — reach out for support."
+    },
+    "name": "Nine of Swords"
+  },
+  {
+    "id": "swords-10",
+    "arcana": "minor",
+    "suit": "swords",
+    "number": 10,
+    "upright": {
+      "keywords": [
+        "Whatsoever is intimated by the design",
+        "also pain, affliction, tears, sadness, desolation",
+        "It is not especially a card of violent death"
+      ],
+      "summary": "Whatsoever is intimated by the design; also pain, affliction, tears, sadness, desolation. It is not especially a card of violent death.",
+      "summaryModern": "Rock bottom — but the worst is over. From here, the only direction is up."
+    },
+    "reversed": {
+      "keywords": [
+        "Advantage, profit, success, favour, but none of these are permanent",
+        "also power and authority"
+      ],
+      "summary": "Advantage, profit, success, favour, but none of these are permanent; also power and authority.",
+      "summaryModern": "Survival and recovery. You are rising from the ashes — the nightmare is ending."
+    },
+    "name": "Ten of Swords"
+  }
+]

@@ -1,0 +1,11 @@
+# Apple Double files
+._*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor files
+*.swp
+*.swo
+*~
