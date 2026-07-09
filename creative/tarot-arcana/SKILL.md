@@ -46,16 +46,16 @@ Run commands from the skill directory so relative paths resolve. The draw script
 
 When someone asks for a tarot reading, guide them through a structured question loop before drawing cards. Ask one at a time:
 
-1. **Theme** — 想看哪个方面？感情、事业、还是别的？
-2. **Situation** — 目前情况到哪一步了？简单说说背景。
-3. **Core confusion** — 你真正纠结的是什么？卡在哪里？
-4. **Timeframe** — 想看多长时间的范围？一周、一个月、还是三个月？
-5. **Focus** — 你希望塔罗帮你看清什么？现状、阻碍、趋势、选择，还是行动建议？
+1. **Theme** — What area of life? Relationships, career, or something else?
+2. **Situation** — What's the current situation? Give a bit of background.
+3. **Core confusion** — What are you truly stuck on? Where's the block?
+4. **Timeframe** — What time period are you looking at? A week, a month, three months?
+5. **Focus** — What do you want the cards to help you see? Current state, obstacles, trends, choices, or next steps?
 
 After the question is clear, generate the liveware URL with the question pre-filled:
 
 ```
-https://<app-id>.apps.clawling.io/?question=<url-encoded-question>&lang=zh
+https://<app-id>.apps.clawling.io/?question=<url-encoded-question>
 ```
 
 If liveware is unavailable, proceed with Step 1 and draw cards in chat directly.
