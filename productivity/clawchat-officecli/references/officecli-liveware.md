@@ -204,7 +204,7 @@ as `hermes_rest_completed`, `hermes_rest_failed`, or
 - If the preview directory does not open, run the launcher again and check `${OFFICE_LIVE_HOME:-$HERMES_HOME/workspace/office-live}/.state/directory.log`.
 - If a document is missing from the directory, place it under one of `OFFICE_DOC_ROOTS` or start the launcher with `OFFICE_DOC_ROOTS=/path/a:/path/b`.
 - If preview selection is not recorded, confirm the browser request to `/preview/<doc-id>/_watch/api/selection` returns `204`, then read the selected node with OfficeCLI.
-- If Hermes asks for command approval after `curl | python3`, do not approve that command. Use direct `curl`, `grep`, or OfficeCLI instead.
+- If Hermes asks for command approval after `curl-to-python piping`, do not approve that command. Use direct `curl`, `grep`, or OfficeCLI instead.
 - If duplicate Liveware apps appear (same name, different IDs), the `existing_app_id()` name matching in `office-liveware-setup.py` may have failed. Run `liveware app list`, identify duplicates, delete extras with `liveware app delete <id>`. The correct app ID is stored in `.state/liveware.env`.
 - If the boot hook fails to capture the public URL after changing `LIVEWARE_DOMAIN`, the regex in `handler.py` must be updated — it currently hardcodes `apps.clawling.io` in the URL pattern.
 - If registration fails with `invalid token`, the script is likely using `$CLAWCHAT_TOKEN` or curl instead of plugin tools. Only `setup.py` (Python, running inside the gateway process) can register via `clawchat_register_app()`. Shell scripts and curl will always fail.

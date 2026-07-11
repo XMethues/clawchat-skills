@@ -11,6 +11,32 @@ the most specific official OfficeCLI skill first, then use the OfficeCLI CLI or
 MCP exactly as that official skill instructs. Liveware is only the browser
 preview and file-directory layer.
 
+## Directory Structure
+
+This skill uses a **flat layout** — all scripts live directly under `scripts/`
+and the frontend under `web/`. There is no nested `liveware/` subdirectory.
+
+```
+clawchat-officecli/
+  SKILL.md                        ← this file
+  references/officecli-liveware.md ← liveware architecture docs
+  scripts/
+    office-live-directory.py      ← directory server
+    office-liveware-setup.py      ← one-time setup (login, create app, register, sync SOUL)
+    office-liveware-start.sh      ← per-boot start (directory + tunnel)
+  web/
+    index.html                    ← browser preview frontend
+    assets/                       ← JS/CSS
+```
+
+**Why flat?** Because every file serves the liveware preview workflow. When all
+files share a single purpose, extra nesting (`liveware/scripts/`, `liveware/static/`)
+adds hierarchy without adding clarity. Match the structure to the actual
+organization of the work, not to another skill's convention.
+
+This is a design principle, not a rule — if a future version adds non-liveware
+scripts (e.g. a standalone CLI tool), a nested layout would become appropriate.
+
 ## Primary Rule
 
 When the user asks to create, read, inspect, edit, format, summarize, validate,
@@ -123,7 +149,7 @@ Required:
 
 Recommended:
 
-- Configure OfficeCLI MCP as server `officecli` in `$HOME/.hermes/config.yaml`.
+- Configure OfficeCLI MCP as server `officecli` in the Hermes config file.
 - Restart Hermes Agent after adding or changing MCP config so MCP tools are discovered.
 - Use MCP for structured OfficeCLI operations when available, while still following
   the matching official OfficeCLI skill.
