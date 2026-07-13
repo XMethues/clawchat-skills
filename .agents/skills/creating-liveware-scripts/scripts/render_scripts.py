@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import shlex
 import tempfile
 from pathlib import Path
@@ -99,6 +100,8 @@ END_ADAPTER = "# END TARGET SERVER ADAPTER"
 BEGIN_BINDING = "# BEGIN LIVEWARE BINDING"
 END_BINDING = "# END LIVEWARE BINDING"
 MARKERS = (BEGIN_ADAPTER, END_ADAPTER, BEGIN_BINDING, END_BINDING)
+STANDARD_STATE_FILE_LINE = 'STATE_FILE="${HOME}/.clawling/apps/${SKILL_NAME}.json"'
+REQUIRED_COMMAND_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._+-]*$")
 
 
 def require_shell_text(value: object, label: str, *, allow_empty: bool = False) -> str:
@@ -156,7 +159,9 @@ def validate_adapter(analysis: dict[str, object]) -> dict[str, object]:
     if not isinstance(required, list) or not all(isinstance(item, str) for item in required):
         raise ValueError("required_commands must be a string list.")
     for item in required:
-        require_shell_text(item, "Required command")
+        name = require_shell_text(item, "Required command")
+        if REQUIRED_COMMAND_RE.fullmatch(name) is None:
+            raise ValueError("Required command name is malformed or option-like.")
     log = adapter.get("log")
     if not isinstance(log, dict):
         raise ValueError("Adapter log declaration must be an object mapping.")
@@ -223,6 +228,15 @@ def parse_marker_spans(text: str) -> dict[str, tuple[int, int]]:
     return spans
 
 
+def validate_scaffold_identity(text: str, skill_name: str) -> None:
+    expected_skill_line = f"SKILL_NAME={shlex.quote(skill_name)}"
+    lines = text.splitlines()
+    skill_lines = [line for line in lines if line.lstrip(" \t").startswith("SKILL_NAME=")]
+    state_lines = [line for line in lines if line.lstrip(" \t").startswith("STATE_FILE=")]
+    if skill_lines != [expected_skill_line] or state_lines != [STANDARD_STATE_FILE_LINE]:
+        raise ValueError("Existing start.sh scaffold identity is invalid or does not match current analysis.")
+
+
 def extract_block(text: str, begin: str, end: str) -> str:
     if begin not in MARKERS or end not in MARKERS:
         raise ValueError("Unknown start.sh marker requested.")
@@ -241,7 +255,7 @@ def _render_dynamic_adapter(adapter: dict[str, object]) -> str:
     url = cast(str, readiness["url"])
     health = shell_health_url(url)
     command_checks = "\n".join(
-        f"if ! command -v {shlex.quote(item)} >/dev/null 2>&1; then printf 'start: Missing required command: %s.\\n' {shlex.quote(item)} >&2; exit 1; fi"
+        f"if ! command -v -- {shlex.quote(item)} >/dev/null 2>&1; then printf 'start: Missing required command: %s.\\n' {shlex.quote(item)} >&2; exit 1; fi"
         for item in required
     )
     common = f'''PORT="${{PORT:-{port}}}"
@@ -271,7 +285,7 @@ if ! wait_for_http {health}; then
   exit 1
 fi'''
     words = " ".join(shell_word(item) for item in command)
-    launch = f'''\ncd {shell_root_path(workdir)}
+    launch = f'''\ncd -- {shell_root_path(workdir)}
 SERVER_COMMAND=({words})'''
     if kind == "existing-launcher":
         return common + launch + f'''\n"${{SERVER_COMMAND[@]}}"
@@ -282,7 +296,7 @@ fi'''
     if log["owner"] == "generated-start":
         log_path = cast(str, log["path"])
         log_setup = f'''SERVER_LOG={shell_log_path(log_path)}
-mkdir -p "$(dirname "$SERVER_LOG")"'''
+mkdir -p -- "$(dirname -- "$SERVER_LOG")"'''
         launch_command = '"${SERVER_COMMAND[@]}" >"$SERVER_LOG" 2>&1 &'
         ready_error = 'echo "start: Target server did not become ready. Log: $SERVER_LOG" >&2'
     else:
@@ -337,6 +351,7 @@ def render_start(analysis: dict[str, object], existing: str | None = None) -> st
     binding = render_binding(analysis)
     if existing is not None:
         spans = parse_marker_spans(existing)
+        validate_scaffold_identity(existing, skill_name)
         existing_adapter = existing[spans[BEGIN_ADAPTER][1]:spans[END_ADAPTER][0]]
         if existing_adapter != generated_adapter + "\n":
             raise ValueError("Existing start.sh target server adapter does not match current analysis.")

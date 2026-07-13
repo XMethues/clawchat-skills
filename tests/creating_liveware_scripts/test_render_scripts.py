@@ -40,6 +40,13 @@ class RenderSetupTests(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.module = load_skill_script("render_scripts")
 
+    def assert_bash_syntax(self, text: str) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "start.sh"
+            path.write_text(text, encoding="utf-8")
+            result = subprocess.run(["bash", "-n", str(path)], capture_output=True, text=True, check=False)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
     def test_setup_embeds_identity_without_translating_display_name(self) -> None:
         text = self.module.render_setup(READY)
         self.assertIn('SKILL_NAME = "sample-skill"', text)
@@ -212,6 +219,59 @@ class RenderSetupTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "does not match current analysis"):
             self.module.render_start(READY, existing=existing)
 
+    def test_repair_rejects_stale_missing_or_duplicate_scaffold_identity(self) -> None:
+        base = self.module.render_start(READY)
+        skill_line = "SKILL_NAME=sample-skill"
+        state_line = 'STATE_FILE="${HOME}/.clawling/apps/${SKILL_NAME}.json"'
+        cases = {
+            "stale_skill": base.replace(skill_line, "SKILL_NAME=other-skill", 1),
+            "missing_skill": base.replace(skill_line + "\n", "", 1),
+            "duplicate_skill": base.replace(skill_line, skill_line + "\n" + skill_line, 1),
+            "stale_state": base.replace(
+                state_line,
+                'STATE_FILE="${HOME}/.clawling/apps/other-skill.json"',
+                1,
+            ),
+            "missing_state": base.replace(state_line + "\n", "", 1),
+            "duplicate_state": base.replace(state_line, state_line + "\n" + state_line, 1),
+        }
+        for name, existing in cases.items():
+            with self.subTest(name=name):
+                with self.assertRaisesRegex(ValueError, "scaffold identity"):
+                    self.module.render_start(READY, existing=existing)
+
+    def test_repair_rejects_static_and_external_scaffold_identity_changes(self) -> None:
+        static = copy.deepcopy(READY)
+        static["adapter"] = {
+            "kind": "static",
+            "workdir": "liveware/static",
+            "command": [],
+            "required_commands": [],
+            "default_port": None,
+            "readiness": None,
+            "log": {"owner": "target", "path": None},
+        }
+        static["static_dir"] = "liveware/static"
+        external = copy.deepcopy(READY)
+        external["adapter"] = {
+            "kind": "external",
+            "workdir": ".",
+            "command": [],
+            "required_commands": [],
+            "default_port": 9000,
+            "readiness": {"kind": "http", "url": "http://127.0.0.1:{port}/healthz"},
+            "log": {"owner": "target", "path": None},
+        }
+        for kind, analysis in {"static": static, "external": external}.items():
+            with self.subTest(kind=kind):
+                existing = self.module.render_start(analysis).replace(
+                    "SKILL_NAME=sample-skill",
+                    "SKILL_NAME=other-skill",
+                    1,
+                )
+                with self.assertRaisesRegex(ValueError, "scaffold identity"):
+                    self.module.render_start(analysis, existing=existing)
+
     def test_existing_launcher_is_invoked_without_replacing_its_lifecycle(self) -> None:
         analysis = dict(READY)
         analysis["adapter"] = {
@@ -299,7 +359,7 @@ class RenderSetupTests(unittest.TestCase):
             "--port",
             "{port}",
         ]
-        analysis["adapter"]["required_commands"] = ["python3", "tool; echo injected"]
+        analysis["adapter"]["required_commands"] = ["python3", "tool-helper"]
         analysis["adapter"]["workdir"] = "liveware/a dir;$(touch pwn)"
         analysis["adapter"]["readiness"] = {
             "kind": "http",
@@ -314,8 +374,8 @@ class RenderSetupTests(unittest.TestCase):
 
         for value in analysis["adapter"]["command"][:-1]:
             self.assertIn(shlex.quote(value), text)
-        self.assertIn(shlex.quote("tool; echo injected"), text)
-        self.assertIn('cd "$SKILL_ROOT/liveware/a dir;\\$(touch pwn)"', text)
+        self.assertIn("command -v -- tool-helper", text)
+        self.assertIn('cd -- "$SKILL_ROOT/liveware/a dir;\\$(touch pwn)"', text)
         self.assertIn(
             'http://127.0.0.1:${PORT}/health?probe=\\$(touch+pwn)&label=\\"x\\"',
             text,
@@ -326,6 +386,82 @@ class RenderSetupTests(unittest.TestCase):
             path.write_text(text, encoding="utf-8")
             result = subprocess.run(["bash", "-n", str(path)], capture_output=True, text=True, check=False)
         self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_required_command_field_rejects_option_and_shell_syntax_names(self) -> None:
+        values = (
+            "-p",
+            "$(touch-not-allowed)",
+            "`touch-not-allowed`",
+            "tool;echo-not-allowed",
+            "tool with spaces",
+            'tool"quote',
+        )
+        for value in values:
+            with self.subTest(value=value):
+                analysis = copy.deepcopy(READY)
+                analysis["adapter"]["required_commands"] = [value]
+                with self.assertRaisesRegex(ValueError, "Required command"):
+                    self.module.render_start(analysis)
+
+    def test_required_command_field_uses_option_terminator_for_valid_name(self) -> None:
+        text = self.module.render_start(READY)
+        self.assertIn("command -v -- python3", text)
+        self.assert_bash_syntax(text)
+
+    def test_workdir_field_encodes_shell_syntax_and_option_like_data(self) -> None:
+        analysis = copy.deepcopy(READY)
+        analysis["adapter"]["workdir"] = '-p $(nope) `nope` "quoted";semi'
+
+        text = self.module.render_start(analysis)
+
+        self.assertIn('cd -- "$SKILL_ROOT/-p \\$(nope) \\`nope\\` \\"quoted\\";semi"', text)
+        self.assert_bash_syntax(text)
+
+    def test_readiness_suffix_field_encodes_shell_syntax_as_data(self) -> None:
+        analysis = copy.deepcopy(READY)
+        analysis["adapter"]["readiness"]["url"] = (
+            'http://127.0.0.1:{port}/health/-p?cmd=$(nope)&tick=`nope`&quote="x";semi'
+        )
+
+        text = self.module.render_start(analysis)
+
+        self.assertIn(
+            'http://127.0.0.1:${PORT}/health/-p?cmd=\\$(nope)&tick=\\`nope\\`&quote=\\"x\\";semi',
+            text,
+        )
+        self.assert_bash_syntax(text)
+
+    def test_generated_log_path_field_uses_safe_option_terminators(self) -> None:
+        analysis = copy.deepcopy(READY)
+        log_path = '-p $(nope) `nope` "quoted";semi.log'
+        analysis["adapter"]["log"] = {"owner": "generated-start", "path": log_path}
+
+        text = self.module.render_start(analysis)
+
+        self.assertIn(f"SERVER_LOG={shlex.quote(log_path)}", text)
+        self.assertIn('mkdir -p -- "$(dirname -- "$SERVER_LOG")"', text)
+        self.assert_bash_syntax(text)
+
+    def test_static_path_field_encodes_shell_syntax_and_option_like_data(self) -> None:
+        analysis = copy.deepcopy(READY)
+        analysis["adapter"] = {
+            "kind": "static",
+            "workdir": "liveware/static",
+            "command": [],
+            "required_commands": [],
+            "default_port": None,
+            "readiness": None,
+            "log": {"owner": "target", "path": None},
+        }
+        analysis["static_dir"] = '-p $(nope) `nope` "quoted";semi'
+
+        text = self.module.render_start(analysis)
+
+        self.assertIn(
+            '"$SKILL_ROOT/-p \\$(nope) \\`nope\\` \\"quoted\\";semi"',
+            text,
+        )
+        self.assert_bash_syntax(text)
 
     def test_control_characters_are_rejected_in_every_shell_derived_field(self) -> None:
         cases: list[tuple[str, dict[str, object]]] = []

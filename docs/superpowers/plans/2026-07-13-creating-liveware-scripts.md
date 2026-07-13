@@ -918,8 +918,10 @@ git commit -m "feat: render idempotent liveware setup"
 - Reject a symlinked `liveware` or `liveware/scripts` parent and any read or write path that escapes the resolved target root.
 - Parse the four exact whole-line markers structurally. Require each marker exactly once, in adapter-begin, adapter-end, binding-begin, binding-end order, with no nesting.
 - Regenerate the approved adapter from current analysis. Preserve an existing adapter only when its block is byte-for-byte identical to that generated adapter; otherwise stop with `ValueError`.
+- Before binding-only repair, require exactly one current `SKILL_NAME=<skill-name>` assignment and the exact standard `STATE_FILE="${HOME}/.clawling/apps/${SKILL_NAME}.json"` line; otherwise stop instead of preserving stale scaffold identity.
 - Repair by splicing only the Liveware binding block into the existing text. Preserve every byte outside that block.
 - Treat analysis values as shell data. Validate target-relative paths and loopback readiness structure, reject control characters, and use shell-safe literal encoding. Preserve only the explicit `${PORT}` and `${HOME}` expansions required by the contract.
+- Reject option-like or malformed required-command names, use option terminators for command/path consumers where supported, and independently regression-test every interpolated shell field with metacharacter and option-like inputs.
 - Replace `assert`-based public input checks with deterministic `ValueError` validation.
 - Add RED-first regression tests for symlink containment, missing/non-string `target_root`, malformed/duplicate/reordered/nested markers, outside-block preservation, stale adapter rejection, adversarial shell values, readiness-before-bind ordering, and `bash -n` for all four adapter kinds.
 - Static tests may render and parse scripts but must not execute generated setup/start scripts or simulate a Liveware runtime.
