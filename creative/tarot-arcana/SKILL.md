@@ -141,13 +141,6 @@ The app ID is required. When called from the boot handler (`handler.py`'s `_star
 | `setup.py` | login → create app → register to ClawChat |
 | `start.sh` | start server → bind tunnel |
 
-### Pitfalls
-
-- **setup.py needs the ClawChat plugin path** — it adds `$HERMES_HOME/../plugins/clawchat` to sys.path to import `clawchat_gateway.tools`. If the plugin is installed elsewhere, the import will fail.
-- **start.sh requires app ID** — always pass it as the first argument. The old fallback to `~/.clawling/tarot-app-id` is a legacy path and may not exist.
-- **setup.sh is deprecated** — the old `setup.sh` has been replaced by `setup.py`. Do not use it. It manually read CLAWCHAT_TOKEN from `.env` and did not actually register with ClawChat.
-- **English-only user-facing text in published scripts** — This skill is published to a public repo (`clawling/clawchat-skills`). All user-facing text (docstrings, `print()` output, comments, error messages) in scripts under `liveware/` must be in English. Chinese or other localized text will be flagged by the skill maintainer. Setup scripts in particular are shared artifacts — keep them language-agnostic.
-
 ## Post-reading follow-up
 
 When the user follows up about a web reading, recover context from `~/tarot-readings/latest.json` or the indexed markdown files.
