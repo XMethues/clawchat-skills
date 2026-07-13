@@ -1594,6 +1594,13 @@ class SkillContentTests(unittest.TestCase):
         self.assertIn("Do not run generated setup.py or start.sh without a real user-provided environment", text)
         self.assertIn("Report that runtime validation was not performed", text)
 
+    def test_skill_has_scan_sections_and_one_concrete_example(self) -> None:
+        text = (SKILL_ROOT / "SKILL.md").read_text(encoding="utf-8")
+        self.assertIn("## Quick Reference", text)
+        self.assertIn("## Example", text)
+        self.assertIn("## Common Mistakes", text)
+        self.assertIn("externally managed Node service", text)
+
 
 if __name__ == "__main__":
     unittest.main()
@@ -1636,6 +1643,20 @@ Standardize the Liveware integration boundary, not the target server. Preserve t
 9. Run `scripts/validate_scripts.py <target> --analysis <analysis.json>`, `python3 -m py_compile <target>/liveware/scripts/setup.py`, and `bash -n <target>/liveware/scripts/start.sh`.
 10. Report changed files, static validation results, and unresolved runtime requirements.
 
+## Quick Reference
+
+| Phase | Action | Stop condition |
+| --- | --- | --- |
+| Analyze | Run `analyze_target.py` and inspect evidence | Status is not `ready` |
+| Preview | Run `render_scripts.py` without `--apply` | Adapter conflicts with evidence |
+| Apply | Run the renderer with `--apply` | Existing script lacks safe markers |
+| Validate | Run contract, Python, Bash, and skill checks | Any static check fails |
+| Runtime | Use the real user-provided environment only | Authorization or environment is missing |
+
+## Example
+
+For an externally managed Node service documented at loopback port `4173` with readiness path `/healthz`, record an `external` adapter with an empty command, target-owned logging, port `4173`, and readiness `/healthz`. Generate a start script that launches nothing, waits for that endpoint, and binds the app to `http://127.0.0.1:4173`. Do not convert the service into a Node launcher or change its logging.
+
 ## Safety Boundary
 
 - Do not install dependencies, download a CLI or plugin, delete apps, kill unknown processes, read credentials, or use `shell=True`.
@@ -1650,6 +1671,14 @@ Standardize the Liveware integration boundary, not the target server. Preserve t
 - Replace only the marked Liveware binding block in `liveware/scripts/start.sh`.
 - Preserve a marked target server adapter when it matches current evidence.
 - Stop for review when an existing start script has no safe markers or conflicts with current project evidence.
+
+## Common Mistakes
+
+- Treating Python, Node, or static examples as a required server shape.
+- Guessing a port, entrypoint, process owner, readiness path, or log file from weak evidence.
+- Running setup or start against fixtures when no real environment was supplied.
+- Recovering the first app instead of one exact skill-name match.
+- Installing dependencies or replacing the target project's service manager.
 ```
 
 - [ ] **Step 4: Write the complete English contract reference**
