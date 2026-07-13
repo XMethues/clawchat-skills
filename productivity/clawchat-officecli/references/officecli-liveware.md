@@ -149,15 +149,6 @@ Recent share requests can be inspected with:
 curl -fsS http://127.0.0.1:26316/api/share-requests?limit=20
 ```
 
-## Troubleshooting
-
-- If OfficeCLI exits with an ICU error, rerun with `DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1`.
-- If the preview directory does not open, run the launcher again and check `${OFFICE_LIVE_HOME:-$HERMES_HOME/workspace/office-live}/.state/directory.log`.
-- If a document is missing from the directory, place it under one of `OFFICE_DOC_ROOTS` or start the launcher with `OFFICE_DOC_ROOTS=/path/a:/path/b`.
-- If preview selection is not recorded, confirm the browser request to `/preview/<doc-id>/_watch/api/selection` returns `204`, then read the selected node with OfficeCLI.
-- If Hermes asks for command approval after `curl-to-python piping`, do not approve that command. Use direct `curl`, `grep`, or OfficeCLI instead.
-- If duplicate Liveware apps appear (same name, different IDs), check `liveware app list`, delete extras with `liveware app delete <id>`. The correct app ID is stored in `.state/liveware.env`.
-- If registration fails with `invalid token`, do not use `$CLAWCHAT_TOKEN` or curl. Only `setup.py` can register.
 
 ## Verification
 
