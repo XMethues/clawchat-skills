@@ -38,7 +38,6 @@ Do not present tarot as proof, diagnosis, professional advice, or guaranteed pre
 | Install liveware (first time) | `python3 liveware/scripts/setup.py && bash liveware/scripts/start.sh <app-id>` (from skill dir) |
 | Activate liveware (daily) | `bash liveware/scripts/start.sh <app-id>` (from skill dir) |
 | Liveware app reference | `skill_view(name='tarot-arcana', file_path='references/liveware-app.md')` |
-| Registration auth chain | `skill_view(name='tarot-arcana', file_path='references/clawchat-registration-auth.md')` |
 
 Run commands from the skill directory so relative paths resolve. The draw script requires `node` in PATH (Node.js built-ins only, no npm packages).
 
@@ -149,7 +148,6 @@ The app ID is required. When called from the boot handler (`handler.py`'s `_star
 - **start.sh requires app ID** — always pass it as the first argument. The old fallback to `~/.clawling/tarot-app-id` is a legacy path and may not exist.
 - **setup.sh is deprecated** — the old `setup.sh` has been replaced by `setup.py`. Do not use it. It manually read CLAWCHAT_TOKEN from `.env` and did not actually register with ClawChat.
 - **English-only user-facing text in published scripts** — This skill is published to a public repo (`clawling/clawchat-skills`). All user-facing text (docstrings, `print()` output, comments, error messages) in scripts under `liveware/` must be in English. Chinese or other localized text will be flagged by the skill maintainer. Setup scripts in particular are shared artifacts — keep them language-agnostic.
-- **GitHub published version may not have setup.py** — The published repo (`clawling/clawchat-skills`) under `creative/tarot-arcana/liveware/scripts/` only has `setup.sh` and `start.sh`; `setup.py` may not be pushed yet. If you're setting up from a GitHub clone and `setup.py` doesn't exist, either create it (see the local skill dir for the authoritative version) or fall back to the deprecated `setup.sh`. Always verify the published repo's contents before referencing `setup.py` for a fresh install.
 
 ### API endpoints
 
