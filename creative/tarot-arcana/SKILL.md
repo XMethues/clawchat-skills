@@ -37,7 +37,6 @@ Do not present tarot as proof, diagnosis, professional advice, or guaranteed pre
 | Question templates | `skill_view(name='tarot-arcana', file_path='references/question-framework.md')` |
 | Install liveware (first time) | `python3 liveware/scripts/setup.py && bash liveware/scripts/start.sh <app-id>` (from skill dir) |
 | Activate liveware (daily) | `bash liveware/scripts/start.sh <app-id>` (from skill dir) |
-| Liveware app reference | `skill_view(name='tarot-arcana', file_path='references/liveware-app.md')` |
 
 Run commands from the skill directory so relative paths resolve. The draw script requires `node` in PATH (Node.js built-ins only, no npm packages).
 
@@ -148,10 +147,6 @@ The app ID is required. When called from the boot handler (`handler.py`'s `_star
 - **start.sh requires app ID** — always pass it as the first argument. The old fallback to `~/.clawling/tarot-app-id` is a legacy path and may not exist.
 - **setup.sh is deprecated** — the old `setup.sh` has been replaced by `setup.py`. Do not use it. It manually read CLAWCHAT_TOKEN from `.env` and did not actually register with ClawChat.
 - **English-only user-facing text in published scripts** — This skill is published to a public repo (`clawling/clawchat-skills`). All user-facing text (docstrings, `print()` output, comments, error messages) in scripts under `liveware/` must be in English. Chinese or other localized text will be flagged by the skill maintainer. Setup scripts in particular are shared artifacts — keep them language-agnostic.
-
-### API endpoints
-
-See `skill_view(name='tarot-arcana', file_path='references/liveware-app.md')` for API endpoint details and readings storage.
 
 ## Post-reading follow-up
 
