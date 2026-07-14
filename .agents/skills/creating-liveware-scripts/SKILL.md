@@ -21,9 +21,9 @@ ANALYSIS_JSON="$ANALYSIS_DIR/analysis.json"
 python3 -B .agents/skills/creating-liveware-scripts/scripts/analyze_target.py "$TARGET" >"$ANALYSIS_JSON" || test "$?" -eq 2
 ```
 
-Generate and Repair require ready analysis. On `ambiguous` or `blocked`, ask one question. Do not guess an entrypoint, port, lifecycle owner, readiness check, or log path.
+Generate and Repair require ready analysis; never write provisional output when non-ready. On `ambiguous` or `blocked`, ask one question. Do not guess an entrypoint, port, lifecycle owner, readiness check, or log path.
 
-Preserve supplied exact server choices only after all evidence is inspected and coherent. Treat a composite Liveware launcher as unconfirmed; ask one narrow server-only question.
+Preserve exact argv, including lifecycle wrappers like `nohup`, only after evidence is inspected and coherent. Treat a composite Liveware launcher as unconfirmed; ask one narrow server-only question.
 
 3. Audit continues when analysis is not ready. Audit a non-ready target without `--analysis`: run the validator without `--analysis` and report both analyzer issues and validator findings. Audit is read-only. Do not run `py_compile` in Audit mode:
 
@@ -42,8 +42,6 @@ python3 -B .agents/skills/creating-liveware-scripts/scripts/validate_scripts.py 
 PYTHONPYCACHEPREFIX="$ANALYSIS_DIR/pycache" python3 -B -m py_compile "$TARGET/liveware/scripts/setup.py"
 bash -n "$TARGET/liveware/scripts/start.sh"
 ```
-
-Report static results and runtime gaps.
 
 ## Quick Reference
 

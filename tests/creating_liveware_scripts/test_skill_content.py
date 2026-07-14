@@ -89,6 +89,7 @@ class SkillContentTests(unittest.TestCase):
     def test_workflow_scopes_non_ready_and_port_behavior_exactly(self) -> None:
         for phrase in (
             "Generate and Repair require ready analysis",
+            "never write provisional output when non-ready",
             "Audit continues when analysis is not ready",
             "Audit a non-ready target without `--analysis`",
             "Generate/Repair only: status is not `ready`",
@@ -160,6 +161,7 @@ class SkillContentTests(unittest.TestCase):
             "Do not prescribe Python, Node, a script, or a service shape",
             "command, service manager, lifecycle, readiness, and logging",
             "Do not guess an entrypoint, port, lifecycle owner, readiness check, or log path",
+            "lifecycle wrappers like `nohup`",
         ):
             self.assertIn(phrase, self.skill_text)
 
