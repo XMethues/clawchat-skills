@@ -23,6 +23,8 @@ python3 -B .agents/skills/creating-liveware-scripts/scripts/analyze_target.py "$
 
 Generate and Repair require ready analysis. On `ambiguous` or `blocked`, ask one question resolving the first issue. Do not guess an entrypoint, port, lifecycle owner, readiness check, or log path. Encode a confirmed interface in the closed schema.
 
+An explicit instruction to preserve the supplied exact server choices confirms the interface only after all evidence is inspected and coherent. If a launcher also performs Liveware work, treat it as composite and ask one narrow question for the exact server-only contract; never adopt it as an adapter.
+
 3. Audit continues when analysis is not ready. Audit a non-ready target without `--analysis`: run the validator without `--analysis` and report both analyzer issues and validator findings. Audit is read-only. Do not run `py_compile` in Audit mode:
 
 ```bash
@@ -52,13 +54,14 @@ Report static results and unresolved runtime needs.
 
 ## Example
 
-For a confirmed externally managed Node service at port `4173`, use an `external` adapter with no command, target-owned logging, and exact readiness `http://127.0.0.1:{port}/healthz`. Launch nothing; wait, then bind loopback. Do not change its lifecycle or logging.
+For a confirmed externally managed Node service at port `4173`, use an `external` adapter with no command, target-owned logging, and exact readiness `http://127.0.0.1:{port}/healthz`. Wait, then bind loopback.
 
 ## Repair Rules
 
 - Require matching current setup/start manifests and a scaffold byte-canonical outside the binding block.
 - Rebuild `liveware/scripts/setup.py`; replace only approved binding content in `liveware/scripts/start.sh`.
 - For Repair, run the renderer without `--apply` for a repair preview, then rerun the renderer with `--apply`.
+- For legacy migration, preview, then use explicit `--replace-legacy`; add `--apply` only after approval.
 - Stop when manifests or markers are missing, invalid, or mismatched. If repair proof fails, show the read-only canonical diff and do not write.
 
 ## Safety Boundary

@@ -658,30 +658,61 @@ def validate_existing_manifest_pair(setup: str, start: str, analysis: dict[str, 
         raise ValueError("Existing setup/start manifest pair does not match current analysis.")
 
 
+def read_legacy_script_pair(setup_path: Path, start_path: Path) -> tuple[str, str]:
+    for path in (setup_path, start_path):
+        if path.is_symlink():
+            raise ValueError(f"--replace-legacy requires a regular legacy script, not a symlink: {path}")
+        if not path.is_file():
+            raise ValueError(
+                "--replace-legacy requires both existing legacy scripts at the fixed setup/start paths."
+            )
+    try:
+        setup = setup_path.read_text(encoding="utf-8")
+        start = start_path.read_text(encoding="utf-8")
+    except (OSError, UnicodeError) as exc:
+        raise ValueError("--replace-legacy requires two readable UTF-8 legacy scripts.") from exc
+    if ANALYSIS_MARKER_PREFIX in setup or ANALYSIS_MARKER_PREFIX in start:
+        raise ValueError(
+            "--replace-legacy rejects canonical, mixed, or marked scripts; use strict canonical repair."
+        )
+    return setup, start
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Render standard Liveware scripts from approved target analysis.")
     parser.add_argument("target", type=Path)
     parser.add_argument("analysis", type=Path)
     parser.add_argument("--apply", action="store_true")
+    parser.add_argument(
+        "--replace-legacy",
+        action="store_true",
+        help="replace an existing marker-free legacy setup/start pair after preview",
+    )
     args = parser.parse_args()
     analysis = load_analysis(args.analysis)
     target = resolve_target_root(analysis, args.target)
     setup_path, start_path = validate_script_paths(target)
     setup_text = render_setup(analysis)
-    existing = start_path.read_text(encoding="utf-8") if start_path.is_file() else None
-    if existing is not None:
-        if not setup_path.is_file():
-            raise ValueError("Existing setup/start manifest pair is incomplete.")
-        validate_existing_manifest_pair(
-            setup_path.read_text(encoding="utf-8"),
-            existing,
-            analysis,
-        )
-    start_text = render_start(analysis, existing=existing)
+    if args.replace_legacy:
+        read_legacy_script_pair(setup_path, start_path)
+        start_text = render_start(analysis)
+    else:
+        existing = start_path.read_text(encoding="utf-8") if start_path.is_file() else None
+        if existing is not None:
+            if not setup_path.is_file():
+                raise ValueError("Existing setup/start manifest pair is incomplete.")
+            validate_existing_manifest_pair(
+                setup_path.read_text(encoding="utf-8"),
+                existing,
+                analysis,
+            )
+        start_text = render_start(analysis, existing=existing)
     if not args.apply:
         print(json.dumps({"setup.py": setup_text, "start.sh": start_text}, ensure_ascii=False, indent=2))
         return 0
     setup_path, start_path = validate_script_paths(target)
+    if args.replace_legacy:
+        read_legacy_script_pair(setup_path, start_path)
     atomic_write(setup_path, setup_text)
     setup_path, start_path = validate_script_paths(target)
     atomic_write(start_path, start_text)

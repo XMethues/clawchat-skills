@@ -155,6 +155,18 @@ class SkillContentTests(unittest.TestCase):
         ):
             self.assertIn(phrase, self.skill_text)
 
+    def test_skill_defines_confirmed_choices_legacy_migration_and_composite_boundary(self) -> None:
+        combined = self.skill_text + "\n" + self.contract_text
+        for phrase in (
+            "explicit instruction to preserve the supplied exact server choices",
+            "all evidence is inspected and coherent",
+            "preview, then use explicit `--replace-legacy`",
+            "Composite scripts that perform Liveware login, setup, app registration, or tunnel binding are not server adapters",
+            "generated scripts own Liveware setup and binding",
+            "exact server-only argv, default port, readiness, lifecycle and logging ownership, and PORT contract",
+        ):
+            self.assertIn(phrase, combined)
+
     def test_skill_requires_static_only_validation_without_real_runtime(self) -> None:
         self.assertIn(
             "Do not run generated setup.py or start.sh without a real user-provided environment",

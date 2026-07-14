@@ -23,6 +23,8 @@ In a dynamic command, `{port}` is valid only as a standalone `{port}` argv item 
 
 Automatic Python and Node candidates are evidence only. Only a static adapter can become `ready` automatically. A Python entrypoint or package `liveware` or `start` script stays ambiguous until the user confirms the exact argv, default port, readiness check, lifecycle and logging ownership, and whether the command consumes exported `PORT` or uses a standalone `{port}` argument. Do not infer any of those properties from `DEFAULT_PORT`, route strings, package scripts, or source code. A package with a present non-object `scripts` value is structured blocked analysis, never an exception or a ready result. Manually confirmed Python and Node adapters remain renderable under the same closed schema.
 
+An explicit instruction to preserve the supplied exact server choices can confirm the interface only after all evidence is inspected and coherent. Composite scripts that perform Liveware login, setup, app registration, or tunnel binding are not server adapters. Never use one as a managed-command or existing-launcher adapter because the generated scripts own Liveware setup and binding. For a composite script, ask one narrow question for the exact server-only argv, default port, readiness, lifecycle and logging ownership, and PORT contract. Preserve any confirmed server style.
+
 When `log.owner` is `generated-start`, `log.path` must be a lexically normalized absolute path or use the exact `$HOME/` or `${HOME}/` form. It must not contain `..` or control characters. Relative paths, repeated separators, and alternate lexical forms are invalid. Analyzer-produced `$HOME/.clawling/apps/<skill-name>.server.log` paths satisfy this rule.
 
 Static adapters require `workdir == static_dir`, empty command and required-command arrays, null port and readiness, and target-owned logging with a null path. Managed and existing-launcher adapters require a nonempty command; external adapters require an empty command. External and existing-launcher adapters require target-owned logging with a null path. A managed command may use target-owned logging, or generated-start logging with an explicit path. The four adapter kinds are:
@@ -65,6 +67,8 @@ After a successful bind, print `Liveware ready: <public-url>` to stdout. This is
 ## Repair Contract
 
 Rebuild setup from the canonical template. Start repair requires exactly one valid marker of each kind, matching current setup/start manifests, a manifest equal to the current analysis, and content that is byte-canonical outside the binding block. It then replaces binding content only. Missing, invalid, duplicated, reordered, or mismatched manifests or markers stop repair. Any adapter or scaffold difference outside binding also stops repair and must be shown for review; it is not implicitly approved content.
+
+Legacy migration is separate from canonical repair: preview, then use explicit `--replace-legacy`, and add `--apply` only after approval. This mode requires both fixed output files to exist as regular legacy scripts and neither file to contain an analysis manifest marker. It rejects missing or one-sided files, canonical or mixed pairs, marked files, symlinks, and path escapes. Preview returns fresh canonical setup and start text without writing; apply atomically replaces only the two fixed paths with mode `0755`. It never relaxes canonical repair proof and never executes generated scripts.
 
 ## Safety Boundary
 

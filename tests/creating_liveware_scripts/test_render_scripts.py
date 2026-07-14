@@ -605,6 +605,192 @@ class RenderSetupTests(unittest.TestCase):
             self.assertFalse((target / "liveware" / "scripts" / "setup.py").exists())
             self.assertFalse((target / "liveware" / "scripts" / "start.sh").exists())
 
+    def test_replace_legacy_preview_is_fresh_and_read_only(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            target = root / "target"
+            scripts = target / "liveware" / "scripts"
+            scripts.mkdir(parents=True)
+            setup = scripts / "setup.py"
+            start = scripts / "start.sh"
+            setup.write_text("print('legacy setup')\n", encoding="utf-8")
+            start.write_text("#!/usr/bin/env bash\necho legacy start\n", encoding="utf-8")
+            setup.chmod(0o640)
+            start.chmod(0o750)
+            before = {
+                path.name: (path.read_bytes(), path.stat().st_mode, path.stat().st_ino)
+                for path in (setup, start)
+            }
+            analysis = {**copy.deepcopy(READY), "target_root": str(target.resolve())}
+            analysis_path = root / "analysis.json"
+            analysis_path.write_text(json.dumps(analysis, ensure_ascii=False), encoding="utf-8")
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    self.module.__file__,
+                    str(target),
+                    str(analysis_path),
+                    "--replace-legacy",
+                ],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(
+                json.loads(result.stdout),
+                {
+                    "setup.py": self.module.render_setup(analysis),
+                    "start.sh": self.module.render_start(analysis),
+                },
+            )
+            self.assertEqual(
+                {
+                    path.name: (path.read_bytes(), path.stat().st_mode, path.stat().st_ino)
+                    for path in (setup, start)
+                },
+                before,
+            )
+
+    def test_replace_legacy_apply_atomically_replaces_only_the_fixed_pair(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            target = root / "target"
+            scripts = target / "liveware" / "scripts"
+            scripts.mkdir(parents=True)
+            setup = scripts / "setup.py"
+            start = scripts / "start.sh"
+            untouched = scripts / "keep.txt"
+            setup.write_text("print('legacy setup')\n", encoding="utf-8")
+            start.write_text("#!/usr/bin/env bash\necho legacy start\n", encoding="utf-8")
+            untouched.write_text("keep\n", encoding="utf-8")
+            old_inodes = (setup.stat().st_ino, start.stat().st_ino)
+            analysis = {**copy.deepcopy(READY), "target_root": str(target.resolve())}
+            analysis_path = root / "analysis.json"
+            analysis_path.write_text(json.dumps(analysis, ensure_ascii=False), encoding="utf-8")
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    self.module.__file__,
+                    str(target),
+                    str(analysis_path),
+                    "--apply",
+                    "--replace-legacy",
+                ],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(result.stdout, "")
+            self.assertEqual(setup.read_text(encoding="utf-8"), self.module.render_setup(analysis))
+            self.assertEqual(start.read_text(encoding="utf-8"), self.module.render_start(analysis))
+            self.assertEqual((stat.S_IMODE(setup.stat().st_mode), stat.S_IMODE(start.stat().st_mode)), (0o755, 0o755))
+            self.assertNotEqual((setup.stat().st_ino, start.stat().st_ino), old_inodes)
+            self.assertEqual(untouched.read_text(encoding="utf-8"), "keep\n")
+
+    def test_replace_legacy_rejects_incomplete_canonical_mixed_and_marked_pairs(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            target = root / "target"
+            scripts = target / "liveware" / "scripts"
+            scripts.mkdir(parents=True)
+            setup = scripts / "setup.py"
+            start = scripts / "start.sh"
+            analysis = {**copy.deepcopy(READY), "target_root": str(target.resolve())}
+            analysis_path = root / "analysis.json"
+            analysis_path.write_text(json.dumps(analysis, ensure_ascii=False), encoding="utf-8")
+            legacy_setup = "print('legacy setup')\n"
+            legacy_start = "#!/usr/bin/env bash\necho legacy start\n"
+            canonical_setup = self.module.render_setup(analysis)
+            canonical_start = self.module.render_start(analysis)
+            cases = {
+                "missing-start": (legacy_setup, None),
+                "missing-setup": (None, legacy_start),
+                "canonical-pair": (canonical_setup, canonical_start),
+                "canonical-setup-mixed": (canonical_setup, legacy_start),
+                "canonical-start-mixed": (legacy_setup, canonical_start),
+                "malformed-marker": (
+                    self.module.ANALYSIS_MARKER_PREFIX + "not-base64\n",
+                    legacy_start,
+                ),
+            }
+            for name, (setup_text, start_text) in cases.items():
+                with self.subTest(name=name):
+                    for path in (setup, start):
+                        if path.exists() or path.is_symlink():
+                            path.unlink()
+                    if setup_text is not None:
+                        setup.write_text(setup_text, encoding="utf-8")
+                    if start_text is not None:
+                        start.write_text(start_text, encoding="utf-8")
+                    before = {
+                        path.name: path.read_bytes()
+                        for path in (setup, start)
+                        if path.is_file()
+                    }
+
+                    result = subprocess.run(
+                        [
+                            sys.executable,
+                            self.module.__file__,
+                            str(target),
+                            str(analysis_path),
+                            "--replace-legacy",
+                        ],
+                        capture_output=True,
+                        text=True,
+                        check=False,
+                    )
+
+                    self.assertNotEqual(result.returncode, 0)
+                    self.assertNotIn("unrecognized arguments", result.stderr)
+                    self.assertRegex(result.stderr, "legacy|manifest|pair")
+                    self.assertEqual(
+                        {
+                            path.name: path.read_bytes()
+                            for path in (setup, start)
+                            if path.is_file()
+                        },
+                        before,
+                    )
+
+    def test_replace_legacy_rejects_an_escaping_output_symlink(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            target = root / "target"
+            scripts = target / "liveware" / "scripts"
+            scripts.mkdir(parents=True)
+            outside = root / "outside-start.sh"
+            outside.write_text("#!/usr/bin/env bash\necho outside\n", encoding="utf-8")
+            (scripts / "setup.py").write_text("print('legacy')\n", encoding="utf-8")
+            (scripts / "start.sh").symlink_to(outside)
+            analysis = {**copy.deepcopy(READY), "target_root": str(target.resolve())}
+            analysis_path = root / "analysis.json"
+            analysis_path.write_text(json.dumps(analysis, ensure_ascii=False), encoding="utf-8")
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    self.module.__file__,
+                    str(target),
+                    str(analysis_path),
+                    "--apply",
+                    "--replace-legacy",
+                ],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+
+            self.assertNotEqual(result.returncode, 0)
+            self.assertRegex(result.stderr, "symlink|escape")
+            self.assertEqual(outside.read_text(encoding="utf-8"), "#!/usr/bin/env bash\necho outside\n")
+
     def test_apply_atomically_replaces_both_fixed_script_paths_with_mode_0755(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
