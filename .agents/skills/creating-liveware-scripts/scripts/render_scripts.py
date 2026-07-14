@@ -47,25 +47,41 @@ def require_ready(analysis: dict[str, object]) -> None:
 
 
 def _credential_key(key: str) -> bool:
-    normalized = re.sub(r"[^a-z0-9]+", "", key.lower())
-    if normalized == "auth":
+    separated = re.sub(r"([A-Z]+)([A-Z][a-z])", r"\1_\2", key)
+    separated = re.sub(r"([a-z0-9])([A-Z])", r"\1_\2", separated)
+    parts = [part.lower() for part in re.findall(r"[A-Za-z0-9]+", separated)]
+    if set(parts) & {
+        "auth",
+        "authentication",
+        "authorization",
+        "credential",
+        "credentials",
+        "passphrase",
+        "passwd",
+        "password",
+        "secret",
+        "token",
+    }:
         return True
-    return any(
-        stem in normalized
-        for stem in (
-            "accesskey",
-            "apikey",
-            "authentication",
-            "authorization",
-            "credential",
-            "passphrase",
-            "passwd",
-            "password",
-            "privatekey",
-            "secret",
-            "token",
-        )
-    )
+    pairs = set(zip(parts, parts[1:]))
+    if pairs & {
+        ("access", "key"),
+        ("api", "key"),
+        ("auth", "header"),
+        ("auth", "key"),
+        ("pass", "phrase"),
+        ("pass", "wd"),
+        ("pass", "word"),
+        ("private", "key"),
+    }:
+        return True
+    normalized = "".join(parts)
+    return re.search(
+        r"(?:secret|password|passwd|passphrase|credentials?|authorization|authentication)$"
+        r"|token[0-9]*$"
+        r"|(?:accesskey(?:id)?|apikey|privatekey|authkey|authheader)$",
+        normalized,
+    ) is not None
 
 
 def _reject_credentials(value: object) -> None:

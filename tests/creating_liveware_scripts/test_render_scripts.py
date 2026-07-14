@@ -194,6 +194,8 @@ class RenderSetupTests(unittest.TestCase):
             "accesskeyid",
             "private_key",
             "authorization",
+            "auth_key",
+            "authHeader",
             "credential",
             "token2",
         ):
@@ -206,11 +208,24 @@ class RenderSetupTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "credential"):
             self.module.encode_analysis_manifest(nested)
 
-        safe = copy.deepcopy(READY)
-        safe["evidence"] = [{"author": "Ada", "authority": "local"}]
-        self.assertEqual(self.module.decode_analysis_manifest(
-            self.module.encode_analysis_manifest(safe)
-        ), safe)
+        for key in (
+            "author",
+            "authority",
+            "tokenizer",
+            "tokenization",
+            "secretary",
+            "secretariat",
+            "privateKeyboard",
+        ):
+            with self.subTest(safe_key=key):
+                safe = copy.deepcopy(READY)
+                safe["evidence"] = [{key: "benign metadata"}]
+                self.assertEqual(
+                    self.module.decode_analysis_manifest(
+                        self.module.encode_analysis_manifest(safe)
+                    ),
+                    safe,
+                )
 
     def test_manifest_identity_is_type_exact_for_nested_json_values(self) -> None:
         integer = copy.deepcopy(READY)
