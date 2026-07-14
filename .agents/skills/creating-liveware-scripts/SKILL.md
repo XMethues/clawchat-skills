@@ -7,11 +7,11 @@ description: Use when creating, auditing, or repairing ClawChat Liveware setup.p
 
 ## Principle
 
-Standardize Liveware integration, not the target server. Preserve the supplied command, service manager, lifecycle, readiness, and logging behavior. Do not prescribe Python, Node, a script, or a service shape.
+Preserve the supplied command, service manager, lifecycle, readiness, and logging behavior. Do not prescribe Python, Node, a script, or a service shape.
 
 ## Workflow
 
-1. Locate the target Hermes skill root. Require `SKILL.md`; output only `liveware/scripts/setup.py` and `liveware/scripts/start.sh`. Read `references/liveware-script-contract.md` completely.
+1. Require target `SKILL.md`. Output only `liveware/scripts/setup.py` and `liveware/scripts/start.sh`. Read `references/liveware-script-contract.md` completely.
 2. Capture analyzer stdout outside target, then inspect every evidence path and reason:
 
 ```bash
@@ -21,9 +21,9 @@ ANALYSIS_JSON="$ANALYSIS_DIR/analysis.json"
 python3 -B .agents/skills/creating-liveware-scripts/scripts/analyze_target.py "$TARGET" >"$ANALYSIS_JSON" || test "$?" -eq 2
 ```
 
-Generate and Repair require ready analysis. On `ambiguous` or `blocked`, ask one question resolving the first issue. Do not guess an entrypoint, port, lifecycle owner, readiness check, or log path. Encode a confirmed interface in the closed schema.
+Generate and Repair require ready analysis. On `ambiguous` or `blocked`, ask one question. Do not guess an entrypoint, port, lifecycle owner, readiness check, or log path.
 
-An explicit instruction to preserve the supplied exact server choices confirms the interface only after all evidence is inspected and coherent. If a launcher also performs Liveware work, treat it as composite and ask one narrow question for the exact server-only contract; never adopt it as an adapter.
+Preserve supplied exact server choices only after all evidence is inspected and coherent. Treat a composite Liveware launcher as unconfirmed; ask one narrow server-only question.
 
 3. Audit continues when analysis is not ready. Audit a non-ready target without `--analysis`: run the validator without `--analysis` and report both analyzer issues and validator findings. Audit is read-only. Do not run `py_compile` in Audit mode:
 
@@ -36,12 +36,14 @@ python3 -B .agents/skills/creating-liveware-scripts/scripts/validate_scripts.py 
 ```bash
 python3 -B .agents/skills/creating-liveware-scripts/scripts/render_scripts.py "$TARGET" "$ANALYSIS_JSON"
 python3 -B .agents/skills/creating-liveware-scripts/scripts/render_scripts.py "$TARGET" "$ANALYSIS_JSON" --apply
+python3 -B .agents/skills/creating-liveware-scripts/scripts/render_scripts.py "$TARGET" "$ANALYSIS_JSON" --replace-legacy
+python3 -B .agents/skills/creating-liveware-scripts/scripts/render_scripts.py "$TARGET" "$ANALYSIS_JSON" --replace-legacy --apply
 python3 -B .agents/skills/creating-liveware-scripts/scripts/validate_scripts.py "$TARGET" --analysis "$ANALYSIS_JSON"
 PYTHONPYCACHEPREFIX="$ANALYSIS_DIR/pycache" python3 -B -m py_compile "$TARGET/liveware/scripts/setup.py"
 bash -n "$TARGET/liveware/scripts/start.sh"
 ```
 
-Report static results and unresolved runtime needs.
+Report static results and runtime gaps.
 
 ## Quick Reference
 
@@ -54,7 +56,7 @@ Report static results and unresolved runtime needs.
 
 ## Example
 
-For a confirmed externally managed Node service at port `4173`, use an `external` adapter with no command, target-owned logging, and exact readiness `http://127.0.0.1:{port}/healthz`. Wait, then bind loopback.
+For an externally managed Node service on `4173`, use `external`, target-owned logging, and readiness `http://127.0.0.1:{port}/healthz`; launch nothing.
 
 ## Repair Rules
 
@@ -75,6 +77,4 @@ Do not install, download, delete apps, kill unknown processes, read credentials,
 
 ## Common Mistakes
 
-- Treating examples as required server shapes.
-- Trusting plausible markers without canonical re-rendering.
-- Replacing lifecycle/logging because an automatic entrypoint also exists.
+- Treating examples as required server shapes; trusting noncanonical markers; replacing confirmed lifecycle/logging.

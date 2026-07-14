@@ -15,6 +15,10 @@ from typing import cast
 SKILL_ROOT = Path(__file__).resolve().parent.parent
 ASSET_ROOT = SKILL_ROOT / "assets"
 ANALYSIS_MARKER_PREFIX = "# LIVEWARE ANALYSIS V1: "
+ANALYSIS_MARKER_IDENTITY_RE = re.compile(
+    r"^[ \t]*#[ \t]*LIVEWARE[ \t]+ANALYSIS[ \t]+V1[ \t]*:",
+    re.MULTILINE,
+)
 SKILL_NAME_RE = re.compile(r"^[a-z0-9][a-z0-9-]{0,62}$")
 PLACEHOLDER_TOKEN_RE = re.compile(r"@@[^\r\n]*?@@")
 TOP_LEVEL_REQUIRED = frozenset(
@@ -671,7 +675,7 @@ def read_legacy_script_pair(setup_path: Path, start_path: Path) -> tuple[str, st
         start = start_path.read_text(encoding="utf-8")
     except (OSError, UnicodeError) as exc:
         raise ValueError("--replace-legacy requires two readable UTF-8 legacy scripts.") from exc
-    if ANALYSIS_MARKER_PREFIX in setup or ANALYSIS_MARKER_PREFIX in start:
+    if ANALYSIS_MARKER_IDENTITY_RE.search(setup) or ANALYSIS_MARKER_IDENTITY_RE.search(start):
         raise ValueError(
             "--replace-legacy rejects canonical, mixed, or marked scripts; use strict canonical repair."
         )

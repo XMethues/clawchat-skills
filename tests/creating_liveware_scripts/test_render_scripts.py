@@ -708,6 +708,7 @@ class RenderSetupTests(unittest.TestCase):
             legacy_start = "#!/usr/bin/env bash\necho legacy start\n"
             canonical_setup = self.module.render_setup(analysis)
             canonical_start = self.module.render_start(analysis)
+            valid_payload = self.module.encode_analysis_manifest(analysis)
             cases = {
                 "missing-start": (legacy_setup, None),
                 "missing-setup": (None, legacy_start),
@@ -716,6 +717,18 @@ class RenderSetupTests(unittest.TestCase):
                 "canonical-start-mixed": (legacy_setup, canonical_start),
                 "malformed-marker": (
                     self.module.ANALYSIS_MARKER_PREFIX + "not-base64\n",
+                    legacy_start,
+                ),
+                "tab-before-valid-payload": (
+                    f"# LIVEWARE ANALYSIS V1:\t{valid_payload}\n",
+                    legacy_start,
+                ),
+                "no-space-before-malformed-payload": (
+                    "# LIVEWARE ANALYSIS V1:not-base64\n",
+                    legacy_start,
+                ),
+                "indented-spaced-malformed-marker": (
+                    "\t#  LIVEWARE   ANALYSIS V1 : not-base64\n",
                     legacy_start,
                 ),
             }
@@ -758,6 +771,71 @@ class RenderSetupTests(unittest.TestCase):
                         },
                         before,
                     )
+
+    def test_replace_legacy_allows_marker_words_in_non_marker_prose(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            target = root / "target"
+            scripts = target / "liveware" / "scripts"
+            scripts.mkdir(parents=True)
+            setup = scripts / "setup.py"
+            start = scripts / "start.sh"
+            setup.write_text(
+                "print('The phrase # LIVEWARE ANALYSIS V1: is reserved for generated files')\n",
+                encoding="utf-8",
+            )
+            start.write_text(
+                "#!/usr/bin/env bash\n# LIVEWARE ANALYSIS V10: is not the V1 marker.\n# Documentation mentions LIVEWARE ANALYSIS V1: markers.\necho legacy\n",
+                encoding="utf-8",
+            )
+            analysis = {**copy.deepcopy(READY), "target_root": str(target.resolve())}
+            analysis_path = root / "analysis.json"
+            analysis_path.write_text(json.dumps(analysis, ensure_ascii=False), encoding="utf-8")
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    self.module.__file__,
+                    str(target),
+                    str(analysis_path),
+                    "--replace-legacy",
+                ],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(json.loads(result.stdout)["start.sh"], self.module.render_start(analysis))
+            self.assertIn("reserved for generated files", setup.read_text(encoding="utf-8"))
+
+    def test_default_repair_remains_strict_for_malformed_marker_pairs(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            target = root / "target"
+            scripts = target / "liveware" / "scripts"
+            scripts.mkdir(parents=True)
+            (scripts / "setup.py").write_text(
+                "# LIVEWARE ANALYSIS V1:not-base64\nprint('setup')\n",
+                encoding="utf-8",
+            )
+            (scripts / "start.sh").write_text(
+                "# LIVEWARE ANALYSIS V1:\tnot-base64\necho start\n",
+                encoding="utf-8",
+            )
+            analysis = {**copy.deepcopy(READY), "target_root": str(target.resolve())}
+            analysis_path = root / "analysis.json"
+            analysis_path.write_text(json.dumps(analysis, ensure_ascii=False), encoding="utf-8")
+
+            result = subprocess.run(
+                [sys.executable, self.module.__file__, str(target), str(analysis_path)],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("manifest pair", result.stderr)
 
     def test_replace_legacy_rejects_an_escaping_output_symlink(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

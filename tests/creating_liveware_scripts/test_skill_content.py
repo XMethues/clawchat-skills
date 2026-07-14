@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 import stat
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -71,6 +72,8 @@ class SkillContentTests(unittest.TestCase):
             'python3 -B .agents/skills/creating-liveware-scripts/scripts/render_scripts.py "$TARGET" "$ANALYSIS_JSON" --apply',
             'python3 -B .agents/skills/creating-liveware-scripts/scripts/validate_scripts.py "$TARGET" --analysis "$ANALYSIS_JSON"',
             'python3 -B .agents/skills/creating-liveware-scripts/scripts/validate_scripts.py "$TARGET"',
+            'python3 -B .agents/skills/creating-liveware-scripts/scripts/render_scripts.py "$TARGET" "$ANALYSIS_JSON" --replace-legacy',
+            'python3 -B .agents/skills/creating-liveware-scripts/scripts/render_scripts.py "$TARGET" "$ANALYSIS_JSON" --replace-legacy --apply',
         )
         for command in commands:
             self.assertIn(command, self.skill_text)
@@ -94,8 +97,13 @@ class SkillContentTests(unittest.TestCase):
             self.assertIn(phrase, self.skill_text + "\n" + self.contract_text)
 
     def test_skill_stays_concise_and_example_uses_exact_readiness_url(self) -> None:
-        body = self.skill_text.split("---", 2)[2]
-        self.assertLessEqual(len(re.findall(r"\b[\w$<>/{}`.-]+\b", body)), 500)
+        result = subprocess.run(
+            ["wc", "-w", str(SKILL_ROOT / "SKILL.md")],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        self.assertLessEqual(int(result.stdout.split()[0]), 500)
         self.assertIn("http://127.0.0.1:{port}/healthz", self.skill_text)
 
     def test_contract_defines_log_path_and_port_token_rules(self) -> None:
