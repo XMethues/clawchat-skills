@@ -1,6 +1,6 @@
 ---
 name: create-hermes-boot-hook
-description: Create or update customized Hermes Agent BOOT.md startup checklists and gateway:startup hooks, including HOOK.yaml and handler.py, with correct one-shot agent execution, deterministic delivery, silence handling, validation, and Session-mirroring boundaries. Use when a user asks to run checks, reports, alerts, maintenance, or other agent work whenever the Hermes Gateway starts or restarts.
+description: Create or update customized Hermes Agent BOOT.md startup checklists and gateway:startup hooks, including HOOK.yaml and handler.py, with correct one-shot agent execution, optional prepared Liveware startup, deterministic delivery, silence handling, validation, and Session-mirroring boundaries. Use when a user asks to start Liveware or run checks, reports, alerts, maintenance, or other agent work whenever the Hermes Gateway starts or restarts.
 ---
 
 # Create Hermes BOOT Hook
@@ -22,18 +22,21 @@ Read [references/hermes-boot-hooks.md](references/hermes-boot-hooks.md) complete
    - which platform and target receive the report;
    - whether an existing Session is expected for conversational continuity;
    - required toolsets, limits, timeout expectations, and failure logging.
+   - whether a prepared Liveware app must be started before the BOOT agent runs.
 4. Ask only for requirements that cannot be safely inferred. A delivery destination is required: use an explicit `platform:target`, or a bare platform only when its home channel is already configured. Do not assume the startup channel directory is populated.
 5. Generate or update exactly these runtime artifacts unless the user explicitly requests more:
    - `BOOT.md`: the customized checklist/prompt for the one-shot startup agent;
    - `hooks/boot-md/HOOK.yaml`: a Hermes hook manifest listening to `gateway:startup`;
    - `hooks/boot-md/handler.py`: a non-blocking handler that runs the agent and owns deterministic delivery.
 6. Keep the three files consistent. `BOOT.md` controls the work and final-report format; `HOOK.yaml` controls activation; `handler.py` controls execution, silence filtering, delivery, and logging.
+   If Liveware startup is requested, make it a deterministic handler step rather than an instruction the agent may or may not execute. Follow the Liveware startup contract in the reference.
 7. Validate before reporting completion:
    - parse `HOOK.yaml` as YAML;
    - compile `handler.py` with `python3 -m py_compile`;
    - confirm the manifest event is `gateway:startup` and `handler.py` exists beside it;
    - scan all three files for TODOs, example IDs, placeholder targets, and embedded secrets;
    - confirm exact silence-token comparison and direct in-process `send_message_tool` delivery;
+   - when Liveware startup is enabled, confirm the handler uses a validated argument array, a bounded timeout, and an already-prepared idempotent `liveware/scripts/start.sh` without invoking setup;
    - confirm the handler never accesses private gateway globals or edits Session storage.
 8. Explain the resulting behavior and the Session continuity limitation. Do not restart the gateway or send a real external message without the user's approval.
 
@@ -42,6 +45,7 @@ Read [references/hermes-boot-hooks.md](references/hermes-boot-hooks.md) complete
 - Treat startup context as containing `platforms`; do not expect injected `gateway`, `session_store`, or a current chat.
 - Return from `handle(event_type, context)` quickly by starting a daemon background thread.
 - Construct a one-shot `AIAgent` with Hermes gateway model and runtime resolvers, `platform="gateway"`, bounded iterations, and startup-appropriate context settings; then call `run_conversation()`.
+- When requested, start a prepared Liveware app deterministically inside the same background worker before the agent. Never delegate this startup action to the model.
 - Tell the agent to produce the report, not to call `send_message` itself.
 - Let the handler call `tools.send_message_tool.send_message_tool` directly in the same process.
 - Suppress delivery only when the stripped final response exactly equals one of `[SILENT]`, `SILENT`, `NO_REPLY`, or `NO REPLY`.
@@ -49,6 +53,7 @@ Read [references/hermes-boot-hooks.md](references/hermes-boot-hooks.md) complete
 - Do not shell out to `hermes send`; it is only a wrapper around the same tool and loses the reason to run in-process.
 - Never use `_gateway_runner_ref`, mutate `sessions.json` or SQLite, or change `mirror_to_session()` to create sessions.
 - State clearly that mirroring succeeds only when the destination Session already exists. A startup hook alone cannot guarantee first-contact reply continuity.
+- Never run Liveware login, app creation, ClawChat registration, dependency installation, or `setup.py` during `gateway:startup`. Startup may only activate an app that was prepared beforehand.
 
 ## Output quality
 

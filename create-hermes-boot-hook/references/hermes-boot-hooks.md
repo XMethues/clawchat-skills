@@ -32,6 +32,8 @@ Keep responsibilities separate:
 
 This ownership prevents duplicate sends and keeps delivery status observable by the handler.
 
+If the user requests Liveware activation on every gateway restart, insert a deterministic Liveware start step at the beginning of the same worker, before constructing the agent. Feed its concise success or failure status into the agent prompt when the BOOT report should mention it.
+
 ## BOOT.md contract
 
 Write `BOOT.md` as a precise one-shot prompt. Include:
@@ -146,6 +148,69 @@ def _run_boot_workflow(platforms):
 
 The generated handler should improve this baseline where the installed version requires cleanup of agent resources or exposes configuration for enabled toolsets, fallback models, iteration limits, or service tiers. Keep the core ownership model unchanged.
 
+## Prepared Liveware startup extension
+
+Liveware activation is an optional deterministic startup action, not an agent task. Use it only when the target Hermes skill already has a reviewed `liveware/scripts/start.sh` with these properties:
+
+- its separate `setup.py` has already completed login, app creation/recovery, state persistence, and ClawChat registration;
+- `start.sh` reads and validates the prepared state, starts or confirms the target local service, waits for readiness, performs `liveware tunnel bind` or `bind-static`, and then exits;
+- repeating `start.sh` after a gateway restart is safe for the target service lifecycle and does not kill or replace an unknown process;
+- it returns a nonzero status on failure and does not print credentials.
+
+If those properties cannot be established from the script and its owning skill, stop and ask the user to make the Liveware launcher boot-safe. Do not reconstruct setup or tunnel internals in the Hook.
+
+Add a bounded helper such as:
+
+```python
+import os
+import subprocess
+
+from agent.redact import redact_sensitive_text
+
+LIVEWARE_START = Path("/absolute/path/to/skill/liveware/scripts/start.sh")
+LIVEWARE_TIMEOUT_SECONDS = 60
+
+
+def _start_prepared_liveware() -> dict:
+    if not LIVEWARE_START.is_file():
+        return {"ok": False, "detail": "Liveware start script is missing"}
+
+    env = os.environ.copy()
+    env.setdefault("HERMES_HOME", str(HERMES_HOME))
+    try:
+        completed = subprocess.run(
+            ["bash", str(LIVEWARE_START)],
+            cwd=str(LIVEWARE_START.parents[2]),
+            env=env,
+            stdin=subprocess.DEVNULL,
+            capture_output=True,
+            text=True,
+            timeout=LIVEWARE_TIMEOUT_SECONDS,
+            check=False,
+        )
+    except subprocess.TimeoutExpired:
+        return {"ok": False, "detail": "Liveware start timed out"}
+    except OSError as exc:
+        return {
+            "ok": False,
+            "detail": redact_sensitive_text(f"Liveware start failed: {exc}"),
+        }
+
+    if completed.returncode != 0:
+        detail = (completed.stderr or completed.stdout or "unknown error").strip()
+        return {"ok": False, "detail": redact_sensitive_text(detail[-500:])}
+    detail = (completed.stdout or "Liveware started").strip()
+    return {"ok": True, "detail": redact_sensitive_text(detail[-500:])}
+```
+
+Call this helper from `_run_boot_workflow()` before `AIAgent`. Keep it inside the daemon worker so gateway startup returns immediately. Use `subprocess.run()` rather than `Popen()` for the standard one-shot `start.sh`: the script owns its server lifecycle and Liveware binding, while the Hook owns only the bounded activation attempt.
+
+Do not run `setup.py`, `liveware login`, `liveware app create`, or ClawChat registration here. `gateway:startup` occurs too early to treat platform activation as an interactive setup flow, and repeating setup on every restart risks duplicate or partially registered applications.
+
+Do not assume every existing launcher is idempotent. In particular, a launcher that always starts a new server, kills the process occupying its port, or fails whenever a healthy service survived the gateway restart is not boot-safe. Repair that launcher or use its supported “ensure running” interface before enabling automatic startup.
+
+For a BOOT report, append only a bounded, credential-free status block to the prompt; never inject raw environment variables or unlimited process output. If Liveware failure must always notify the user, state that explicitly in `BOOT.md`. If Liveware succeeds and nothing else needs attention, the agent may still return `[SILENT]`.
+
 ### Target selection
 
 Prefer a fully explicit target such as `telegram:-1001234567890` when the user supplies it. A bare platform such as `telegram` is valid only when that platform's home channel is configured. Do not depend on name resolution during startup because `gateway:startup` occurs before the first channel-directory build.
@@ -191,6 +256,7 @@ This boundary does not prevent `BOOT.md` or the handler from running before firs
 - The worker uses `_resolve_gateway_model()` and `_resolve_runtime_agent_kwargs()`.
 - The agent returns a report but does not send it.
 - Delivery calls `send_message_tool` directly, not `subprocess` or `hermes send`.
+- Optional Liveware activation runs a prepared, boot-safe `start.sh` with a fixed argv, bounded timeout, and no setup/login/registration work.
 - Silence uses whole-response exact matching.
 - The target is explicit or backed by a configured home channel.
 - Delivery failure and `mirrored` state are logged distinctly.
