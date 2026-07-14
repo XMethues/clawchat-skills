@@ -44,7 +44,7 @@ REFERENCE_SCRIPT_ACTION_RE = re.compile(
     r"\b(?:use|run|start|launch|invoke)\b[ \t]+(scripts?/[A-Za-z0-9_./-]+)",
     re.IGNORECASE,
 )
-LIFECYCLE_SCRIPT_SUFFIXES = frozenset({".sh", ".py", ".js", ".mjs", ".cjs"})
+LIFECYCLE_SCRIPT_SUFFIXES = frozenset({".sh", ".py", ".js", ".mjs", ".cjs", ".ts", ".rb"})
 LIFECYCLE_ACTIONS = frozenset({"start", "run", "launch", "launcher", "serve"})
 LIFECYCLE_OBJECTS = frozenset({"liveware", "server", "service", "app"})
 PM2_CONFIG_NAMES = frozenset(
@@ -63,33 +63,57 @@ REFERENCE_SCRIPT_HARMLESS_RE = re.compile(
     r"[ \t]+for[ \t]+(?:tests?|testing|linting)(?:[ \t]+only)?$",
     re.IGNORECASE,
 )
+REFERENCE_LEADING_QUALIFIER_RE = re.compile(
+    r"^(?:(?:in|for)[ \t]+production|(?:at|during)[ \t]+runtime),[ \t]+",
+    re.IGNORECASE,
+)
+REFERENCE_ACTION_NEGATION_RE = re.compile(
+    r"\b(?:for[ \t]+example|as[ \t]+an?[ \t]+example|do[ \t]+not|never|"
+    r"obsolete|deprecated)\b",
+    re.IGNORECASE,
+)
+REFERENCE_ACTION_OBSOLETE_RE = re.compile(
+    r"^[ \t]+(?:is[ \t]+)?(?:obsolete|deprecated)\b",
+    re.IGNORECASE,
+)
 
 
 def reference_declares_lifecycle(text: str) -> bool:
+    text = re.sub(r"\be\.g\.(?=[ \t]*,?)", "For example", text, flags=re.IGNORECASE)
     for statement in re.split(r"[!?;\n]+|\.(?=\s|$)", text):
         statement = re.sub(
             r"^\s*(?:(?:[-*+])|(?:[0-9]+[.)]))\s+",
             "",
             statement,
         ).strip()
+        statement = REFERENCE_LEADING_QUALIFIER_RE.sub("", statement, count=1)
         if not statement:
             continue
         if any(pattern.fullmatch(statement) is not None for pattern in REFERENCE_LIFECYCLE_PATTERNS):
             return True
         for match in REFERENCE_SCRIPT_ACTION_RE.finditer(statement):
+            before = statement[: match.start()].strip()
+            local_prefix = before.rsplit(",", 1)[-1].strip()
+            previous_action = REFERENCE_SCRIPT_ACTION_RE.search(statement, 0, match.start())
+            qualifier_context = local_prefix if previous_action is not None else before
+            action_is_qualified = (
+                REFERENCE_ACTION_NEGATION_RE.search(qualifier_context) is not None
+                or REFERENCE_ACTION_OBSOLETE_RE.match(statement[match.end() :]) is not None
+            )
             if (
                 lifecycle_script_name(Path(match.group(1)))
                 and REFERENCE_SCRIPT_HARMLESS_RE.search(statement) is None
+                and not action_is_qualified
             ):
                 return True
     return False
 
 
 def lifecycle_script_name(path: Path) -> bool:
-    if path.stem.lower() == "start":
-        return True
     if path.suffix.lower() not in LIFECYCLE_SCRIPT_SUFFIXES:
         return False
+    if path.stem.lower() == "start":
+        return True
     tokens = set(re.findall(r"[a-z0-9]+", path.stem.lower()))
     return bool(tokens & LIFECYCLE_ACTIONS) and bool(tokens & LIFECYCLE_OBJECTS)
 
@@ -114,6 +138,16 @@ def path_resolves_inside(path: Path, target: Path) -> bool:
         return path_is_within(path.resolve(strict=False), target)
     except (OSError, RuntimeError):
         return False
+
+
+def broken_or_unresolvable_symlink(path: Path) -> bool:
+    try:
+        if not path.is_symlink():
+            return False
+        path.resolve(strict=True)
+    except (OSError, RuntimeError):
+        return True
+    return False
 
 
 def target_relative(path: Path, target: Path) -> str:
@@ -158,9 +192,10 @@ def lifecycle_signals(
     target: Path,
     liveware: Path,
     skill_name: str,
-) -> tuple[list[Path], list[Path], list[Path]]:
+) -> tuple[list[Path], list[Path], list[Path], list[Path]]:
     unreadable: list[Path] = []
     unsafe: list[Path] = []
+    broken: list[Path] = []
     start = liveware / "scripts" / "start.sh"
     manager_names = (
         "Dockerfile",
@@ -182,6 +217,9 @@ def lifecycle_signals(
     def list_directory(directory: Path) -> list[Path]:
         if not path_present(directory):
             return []
+        if broken_or_unresolvable_symlink(directory):
+            broken.append(directory)
+            return []
         if not path_resolves_inside(directory, target):
             unsafe.append(directory)
             return []
@@ -198,6 +236,9 @@ def lifecycle_signals(
     for directory in (target, liveware, target / "scripts", liveware / "scripts"):
         for path in list_directory(directory):
             if path.suffix.lower() != ".service" and not lifecycle_script_name(path):
+                continue
+            if broken_or_unresolvable_symlink(path):
+                broken.append(path)
                 continue
             if not path_resolves_inside(path, target):
                 unsafe.append(path)
@@ -237,6 +278,9 @@ def lifecycle_signals(
             continue
         visited.add(resolved)
         for path in list_directory(directory):
+            if broken_or_unresolvable_symlink(path):
+                broken.append(path)
+                continue
             if not path_resolves_inside(path, target):
                 unsafe.append(path)
                 continue
@@ -258,13 +302,16 @@ def lifecycle_signals(
     unique: list[Path] = []
     seen: set[Path] = set()
     for path in paths:
+        if broken_or_unresolvable_symlink(path):
+            broken.append(path)
+            continue
         if path_present(path) and not path_resolves_inside(path, target):
             unsafe.append(path)
             continue
         if path_present(path) and path not in seen:
             seen.add(path)
             unique.append(path)
-    return unique, unreadable, unsafe
+    return unique, unreadable, unsafe, broken
 
 
 def automatic_candidate_evidence(
@@ -371,7 +418,18 @@ def reject_escaping_candidate(
     path: Path,
     label: str,
 ) -> bool:
-    if not path_present(path) or path_resolves_inside(path, target):
+    if not path_present(path):
+        return False
+    if broken_or_unresolvable_symlink(path):
+        record_path_issue(
+            result,
+            target,
+            path,
+            f"{label} is a broken or unresolvable symlink",
+            f"Unresolvable {label}",
+        )
+        return True
+    if path_resolves_inside(path, target):
         return False
     record_path_issue(
         result,
@@ -429,11 +487,31 @@ def analyze_target(target_root: Path) -> dict[str, object]:
         if reject_escaping_candidate(result, target, candidate, label):
             return result
 
-    found_signals, unreadable_lifecycle, unsafe_lifecycle = lifecycle_signals(
+    found_signals, unreadable_lifecycle, unsafe_lifecycle, broken_lifecycle = lifecycle_signals(
         target,
         liveware,
         name,
     )
+    if broken_lifecycle:
+        for path in broken_lifecycle:
+            record_path_issue(
+                result,
+                target,
+                path,
+                f"Lifecycle or reference evidence is a broken or unresolvable symlink: {target_relative(path, target)}",
+                "Unresolvable lifecycle or reference evidence",
+            )
+        evidence.extend(
+            item
+            for item in automatic_candidate_evidence(
+                target,
+                python_server,
+                package_files,
+                static_index,
+            )
+            if item not in evidence
+        )
+        return result
     if unsafe_lifecycle:
         for path in unsafe_lifecycle:
             record_path_issue(
@@ -482,15 +560,25 @@ def analyze_target(target_root: Path) -> dict[str, object]:
                     "reason": "Existing server or service lifecycle declaration",
                 }
             )
-        evidence.extend(
-            automatic_candidate_evidence(
-                target,
-                python_server,
-                package_files,
-                static_index,
-            )
+        candidate_evidence = automatic_candidate_evidence(
+            target,
+            python_server,
+            package_files,
+            static_index,
         )
-        issues.append("Existing server lifecycle requires user confirmation before generating an adapter")
+        evidence.extend(candidate_evidence)
+        dynamic_kinds: list[str] = []
+        if python_server.is_file():
+            dynamic_kinds.append("Python")
+        if any(path.is_file() for path in package_files):
+            dynamic_kinds.append("Node")
+        if dynamic_kinds:
+            kinds = " and ".join(dynamic_kinds)
+            issues.append(
+                f"Existing lifecycle and {kinds} candidate require confirmation of the exact argv, default port, readiness check, lifecycle and logging ownership, and whether the command consumes exported PORT or uses a standalone {{port}} argument"
+            )
+        else:
+            issues.append("Existing server lifecycle requires user confirmation before generating an adapter")
         return result
 
     if python_server.is_file():

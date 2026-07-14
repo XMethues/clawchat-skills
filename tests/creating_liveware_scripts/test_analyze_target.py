@@ -240,6 +240,51 @@ class AnalyzeTargetTests(unittest.TestCase):
                 result["evidence"],
             )
 
+    def test_dynamic_candidate_and_lifecycle_request_one_complete_interface(self) -> None:
+        cases = (
+            (
+                "python-docker",
+                self.write_python_candidate,
+                "Dockerfile",
+                "FROM python:3.12\n",
+                "Python",
+                "liveware/server.py",
+            ),
+            (
+                "node-docker",
+                self.write_node_candidate,
+                "Dockerfile",
+                "FROM node:22\n",
+                "Node",
+                "liveware/package.json",
+            ),
+        )
+        for name, write_candidate, signal_path, signal_text, kind, candidate_path in cases:
+            with self.subTest(name=name), tempfile.TemporaryDirectory() as tmp:
+                target = write_target(Path(tmp))
+                write_candidate(target)
+                (target / signal_path).write_text(signal_text, encoding="utf-8")
+                result = self.module.analyze_target(target)
+
+            self.assertEqual(result["status"], "ambiguous")
+            self.assertIsNone(result["adapter"])
+            self.assertEqual(len(result["issues"]), 1)
+            issue = result["issues"][0]
+            self.assertIn(kind, issue)
+            for required in (
+                "exact argv",
+                "default port",
+                "readiness",
+                "lifecycle",
+                "logging",
+                "exported PORT",
+                "standalone {port}",
+            ):
+                self.assertIn(required, issue)
+            paths = {item["path"] for item in result["evidence"]}
+            self.assertIn(signal_path, paths)
+            self.assertIn(candidate_path, paths)
+
     def test_all_supported_lifecycle_signal_shapes_block_automatic_detection(self) -> None:
         signal_writers = {
             "compose.yaml": lambda target: (target / "compose.yaml").write_text(
@@ -300,6 +345,9 @@ class AnalyzeTargetTests(unittest.TestCase):
             "scripts/restart-tests.sh": "#!/usr/bin/env bash\nprintf 'tests only\\n'\n",
             "scripts/test-liveware.py": "print('schema test only')\n",
             "scripts/liveware-lint.js": "console.log('lint only');\n",
+            "scripts/start.md": "Runbook only.\n",
+            "scripts/start.txt": "Runbook only.\n",
+            "scripts/start.backup": "Runbook only.\n",
         }
         for script, content in scripts.items():
             with self.subTest(script=script), tempfile.TemporaryDirectory() as tmp:
@@ -340,6 +388,14 @@ class AnalyzeTargetTests(unittest.TestCase):
             "For tests, run scripts/start-server.sh.\n",
             "For linting only, use scripts/start-server.sh.\n",
             "As an example, run scripts/start-server.sh.\n",
+            "For example, run scripts/start-server.sh.\n",
+            "E.g., launch scripts/start-server.sh.\n",
+            "Do not run scripts/start-server.sh.\n",
+            "Never invoke scripts/start-server.sh.\n",
+            "Run scripts/start-server.sh is obsolete.\n",
+            "Use deprecated scripts/start-server.sh.\n",
+            "This deprecated example says to run scripts/start-server.sh.\n",
+            "You should never launch scripts/start-server.sh.\n",
         )
         for text in texts:
             with self.subTest(text=text), tempfile.TemporaryDirectory() as tmp:
@@ -351,6 +407,26 @@ class AnalyzeTargetTests(unittest.TestCase):
                 result = self.module.analyze_target(target)
             self.assertEqual(result["status"], "ready")
             self.assertEqual(result["adapter"]["kind"], "static")
+
+    def test_reference_action_qualifiers_do_not_hide_later_affirmative_commands(self) -> None:
+        texts = (
+            "Do not run scripts/old-start-server.sh; run scripts/start-server.sh.\n",
+            "For example, run scripts/example-start-server.sh. Run scripts/start-server.sh.\n",
+            "Never invoke scripts/old-start-server.sh; use scripts/run-liveware.py.\n",
+        )
+        for text in texts:
+            with self.subTest(text=text), tempfile.TemporaryDirectory() as tmp:
+                target = write_target(Path(tmp))
+                self.write_static_candidate(target)
+                references = target / "references"
+                references.mkdir()
+                (references / "runtime.md").write_text(text, encoding="utf-8")
+                result = self.module.analyze_target(target)
+            self.assertEqual(result["status"], "ambiguous")
+            self.assertIn(
+                "references/runtime.md",
+                {item["path"] for item in result["evidence"]},
+            )
 
     def test_common_reference_lifecycle_ownership_phrases_are_detected(self) -> None:
         declarations = (
@@ -364,6 +440,10 @@ class AnalyzeTargetTests(unittest.TestCase):
             "1. The service runs under supervisor.\n",
             "Run scripts/start-server.sh in production and update documentation.\n",
             "Run scripts/start-server.sh to launch the service and run tests afterward.\n",
+            "In production, PM2 manages the service.\n",
+            "At runtime, the service is managed by systemd.\n",
+            "For production, supervisor runs the service.\n",
+            "During runtime, the server runs under s6.\n",
         )
         for declaration in declarations:
             with self.subTest(declaration=declaration), tempfile.TemporaryDirectory() as tmp:
@@ -378,6 +458,108 @@ class AnalyzeTargetTests(unittest.TestCase):
                 "references/runtime.md",
                 {item["path"] for item in result["evidence"]},
             )
+
+    def test_lifecycle_qualifiers_do_not_cross_sentence_boundaries(self) -> None:
+        texts = (
+            "In production. PM2 appears in a screenshot.\n",
+            "At runtime. The Start command is displayed in the menu.\n",
+            "For production. This page documents PM2 badges.\n",
+        )
+        for text in texts:
+            with self.subTest(text=text), tempfile.TemporaryDirectory() as tmp:
+                target = write_target(Path(tmp))
+                self.write_static_candidate(target)
+                references = target / "references"
+                references.mkdir()
+                (references / "runtime.md").write_text(text, encoding="utf-8")
+                result = self.module.analyze_target(target)
+            self.assertEqual(result["status"], "ready")
+            self.assertEqual(result["adapter"]["kind"], "static")
+
+    def test_broken_known_symlinks_return_structured_block_for_api_and_cli(self) -> None:
+        def python_candidate(target: Path) -> str:
+            (target / "liveware").mkdir(exist_ok=True)
+            (target / "liveware" / "server.py").symlink_to("missing-server.py")
+            return "liveware/server.py"
+
+        def node_candidate(target: Path) -> str:
+            (target / "liveware").mkdir(exist_ok=True)
+            (target / "liveware" / "package.json").symlink_to("missing-package.json")
+            return "liveware/package.json"
+
+        def static_candidate(target: Path) -> str:
+            index = target / "liveware" / "static" / "index.html"
+            index.unlink()
+            index.symlink_to("missing-index.html")
+            return "liveware/static/index.html"
+
+        def node_entry(target: Path) -> str:
+            liveware = target / "liveware"
+            (liveware / "package.json").write_text(
+                json.dumps({"scripts": {"liveware": "node server.js"}}),
+                encoding="utf-8",
+            )
+            (liveware / "server.js").symlink_to("missing-server.js")
+            return "liveware/server.js"
+
+        def lifecycle_file(target: Path) -> str:
+            scripts = target / "scripts"
+            scripts.mkdir()
+            (scripts / "start.sh").symlink_to("missing-start.sh")
+            return "scripts/start.sh"
+
+        def liveware_lifecycle_file(target: Path) -> str:
+            scripts = target / "liveware" / "scripts"
+            scripts.mkdir()
+            (scripts / "start.sh").symlink_to("missing-start.sh")
+            return "liveware/scripts/start.sh"
+
+        def manager_file(target: Path) -> str:
+            (target / "Dockerfile").symlink_to("missing-Dockerfile")
+            return "Dockerfile"
+
+        def reference_file(target: Path) -> str:
+            references = target / "references"
+            references.mkdir()
+            (references / "runtime.md").symlink_to("missing-runtime.md")
+            return "references/runtime.md"
+
+        def reference_directory(target: Path) -> str:
+            (target / "references").symlink_to("missing-references", target_is_directory=True)
+            return "references"
+
+        for build in (
+            python_candidate,
+            node_candidate,
+            static_candidate,
+            node_entry,
+            lifecycle_file,
+            liveware_lifecycle_file,
+            manager_file,
+            reference_file,
+            reference_directory,
+        ):
+            with self.subTest(build=build.__name__), tempfile.TemporaryDirectory() as tmp:
+                target = write_target(Path(tmp))
+                self.write_static_candidate(target)
+                relative = build(target)
+                api_result = self.module.analyze_target(target)
+                completed = subprocess.run(
+                    [sys.executable, str(Path(self.module.__file__)), str(target)],
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                )
+
+            self.assertEqual(api_result["status"], "blocked")
+            self.assertIsNone(api_result["adapter"])
+            self.assertIn(relative, {item["path"] for item in api_result["evidence"]})
+            self.assertTrue(any("symlink" in issue.lower() for issue in api_result["issues"]))
+            self.assertEqual(completed.returncode, 2)
+            self.assertEqual(completed.stderr, "")
+            cli_result = json.loads(completed.stdout)
+            self.assertEqual(cli_result["status"], "blocked")
+            self.assertIn(relative, {item["path"] for item in cli_result["evidence"]})
 
     def test_lifecycle_and_reference_symlinks_are_containment_checked(self) -> None:
         def lifecycle_file(target: Path, storage: Path, outside: bool) -> str:
