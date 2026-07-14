@@ -1,85 +1,55 @@
 ---
 name: create-hermes-boot-hook
-description: [TODO: Complete and informative explanation of what the skill does and when to use it. Include WHEN to use this skill - specific scenarios, file types, or tasks that trigger it.]
+description: Create or update customized Hermes Agent BOOT.md startup checklists and gateway:startup hooks, including HOOK.yaml and handler.py, with correct one-shot agent execution, deterministic delivery, silence handling, validation, and Session-mirroring boundaries. Use when a user asks to run checks, reports, alerts, maintenance, or other agent work whenever the Hermes Gateway starts or restarts.
 ---
 
-# Create Hermes Boot Hook
+# Create Hermes BOOT Hook
 
-## Overview
+Create a Hermes startup workflow from the user's actual requirements. Generate the runtime files; do not install a generic fixed template.
 
-[TODO: 1-2 sentences explaining what this skill enables]
+## Required reference
 
-## Structuring This Skill
+Read [references/hermes-boot-hooks.md](references/hermes-boot-hooks.md) completely before inspecting or changing runtime files. Follow its architecture and safety boundaries.
 
-[TODO: Choose the structure that best fits this skill's purpose. Common patterns:
+## Workflow
 
-**1. Workflow-Based** (best for sequential processes)
-- Works well when there are clear step-by-step procedures
-- Example: DOCX skill with "Workflow Decision Tree" -> "Reading" -> "Creating" -> "Editing"
-- Structure: ## Overview -> ## Workflow Decision Tree -> ## Step 1 -> ## Step 2...
+1. Determine the Hermes home directory. Default to `~/.hermes` unless the user or environment specifies another location.
+2. Inspect any existing `BOOT.md`, `hooks/boot-md/HOOK.yaml`, and `hooks/boot-md/handler.py`. Preserve unrelated behavior and user customizations.
+3. Turn the user's request into an explicit startup contract:
+   - what the startup agent must inspect or do;
+   - what constitutes a useful report;
+   - when it must remain silent;
+   - which platform and target receive the report;
+   - whether an existing Session is expected for conversational continuity;
+   - required toolsets, limits, timeout expectations, and failure logging.
+4. Ask only for requirements that cannot be safely inferred. A delivery destination is required: use an explicit `platform:target`, or a bare platform only when its home channel is already configured. Do not assume the startup channel directory is populated.
+5. Generate or update exactly these runtime artifacts unless the user explicitly requests more:
+   - `BOOT.md`: the customized checklist/prompt for the one-shot startup agent;
+   - `hooks/boot-md/HOOK.yaml`: a Hermes hook manifest listening to `gateway:startup`;
+   - `hooks/boot-md/handler.py`: a non-blocking handler that runs the agent and owns deterministic delivery.
+6. Keep the three files consistent. `BOOT.md` controls the work and final-report format; `HOOK.yaml` controls activation; `handler.py` controls execution, silence filtering, delivery, and logging.
+7. Validate before reporting completion:
+   - parse `HOOK.yaml` as YAML;
+   - compile `handler.py` with `python3 -m py_compile`;
+   - confirm the manifest event is `gateway:startup` and `handler.py` exists beside it;
+   - scan all three files for TODOs, example IDs, placeholder targets, and embedded secrets;
+   - confirm exact silence-token comparison and direct in-process `send_message_tool` delivery;
+   - confirm the handler never accesses private gateway globals or edits Session storage.
+8. Explain the resulting behavior and the Session continuity limitation. Do not restart the gateway or send a real external message without the user's approval.
 
-**2. Task-Based** (best for tool collections)
-- Works well when the skill offers different operations/capabilities
-- Example: PDF skill with "Quick Start" -> "Merge PDFs" -> "Split PDFs" -> "Extract Text"
-- Structure: ## Overview -> ## Quick Start -> ## Task Category 1 -> ## Task Category 2...
+## Non-negotiable architecture
 
-**3. Reference/Guidelines** (best for standards or specifications)
-- Works well for brand guidelines, coding standards, or requirements
-- Example: Brand styling with "Brand Guidelines" -> "Colors" -> "Typography" -> "Features"
-- Structure: ## Overview -> ## Guidelines -> ## Specifications -> ## Usage...
+- Treat startup context as containing `platforms`; do not expect injected `gateway`, `session_store`, or a current chat.
+- Return from `handle(event_type, context)` quickly by starting a daemon background thread.
+- Construct a one-shot `AIAgent` with Hermes gateway model and runtime resolvers, `platform="gateway"`, bounded iterations, and startup-appropriate context settings; then call `run_conversation()`.
+- Tell the agent to produce the report, not to call `send_message` itself.
+- Let the handler call `tools.send_message_tool.send_message_tool` directly in the same process.
+- Suppress delivery only when the stripped final response exactly equals one of `[SILENT]`, `SILENT`, `NO_REPLY`, or `NO REPLY`.
+- Parse the tool's JSON result and log delivery success, error details, and `mirrored` state without leaking credentials.
+- Do not shell out to `hermes send`; it is only a wrapper around the same tool and loses the reason to run in-process.
+- Never use `_gateway_runner_ref`, mutate `sessions.json` or SQLite, or change `mirror_to_session()` to create sessions.
+- State clearly that mirroring succeeds only when the destination Session already exists. A startup hook alone cannot guarantee first-contact reply continuity.
 
-**4. Capabilities-Based** (best for integrated systems)
-- Works well when the skill provides multiple interrelated features
-- Example: Product Management with "Core Capabilities" -> numbered capability list
-- Structure: ## Overview -> ## Core Capabilities -> ### 1. Feature -> ### 2. Feature...
+## Output quality
 
-Patterns can be mixed and matched as needed. Most skills combine patterns (e.g., start with task-based, add workflow for complex operations).
-
-Delete this entire "Structuring This Skill" section when done - it's just guidance.]
-
-## [TODO: Replace with the first main section based on chosen structure]
-
-[TODO: Add content here. See examples in existing skills:
-- Code samples for technical skills
-- Decision trees for complex workflows
-- Concrete examples with realistic user requests
-- References to scripts/templates/references as needed]
-
-## Resources (optional)
-
-Create only the resource directories this skill actually needs. Delete this section if no resources are required.
-
-### scripts/
-Executable code (Python/Bash/etc.) that can be run directly to perform specific operations.
-
-**Examples from other skills:**
-- PDF skill: `fill_fillable_fields.py`, `extract_form_field_info.py` - utilities for PDF manipulation
-- DOCX skill: `document.py`, `utilities.py` - Python modules for document processing
-
-**Appropriate for:** Python scripts, shell scripts, or any executable code that performs automation, data processing, or specific operations.
-
-**Note:** Scripts may be executed without loading into context, but can still be read by Codex for patching or environment adjustments.
-
-### references/
-Documentation and reference material intended to be loaded into context to inform Codex's process and thinking.
-
-**Examples from other skills:**
-- Product management: `communication.md`, `context_building.md` - detailed workflow guides
-- BigQuery: API reference documentation and query examples
-- Finance: Schema documentation, company policies
-
-**Appropriate for:** In-depth documentation, API references, database schemas, comprehensive guides, or any detailed information that Codex should reference while working.
-
-### assets/
-Files not intended to be loaded into context, but rather used within the output Codex produces.
-
-**Examples from other skills:**
-- Brand styling: PowerPoint template files (.pptx), logo files
-- Frontend builder: HTML/React boilerplate project directories
-- Typography: Font files (.ttf, .woff2)
-
-**Appropriate for:** Templates, boilerplate code, document templates, images, icons, fonts, or any files meant to be copied or used in the final output.
-
----
-
-**Not every skill requires all three types of resources.**
+Prefer small, readable generated files. Put user-specific policy in `BOOT.md` and stable execution mechanics in `handler.py`. Add comments only where they explain a Hermes-specific constraint. Never create `scripts/`, `assets/`, or copied runtime templates inside this skill.
