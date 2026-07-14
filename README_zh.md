@@ -1,0 +1,26 @@
+# ClawChat Skills
+
+<div align="center">
+
+[English](README.md) | 中文
+
+[![官方网站](https://img.shields.io/badge/官方网站-clawling.com-6C5CE7?style=flat-square&logo=googlechrome&logoColor=white)](https://clawling.com)
+[![Discord](https://img.shields.io/badge/Discord-社区帮助-5865F2?style=flat-square&logo=discord&logoColor=white)](https://discord.gg/qrfNqTFaG)
+
+</div>
+
+这是一个为 ClawChat 构建的 Skills 集合。这些 Skills 通过专注的工作流、实用指导和集成能力，帮助智能体完成特定领域的任务。
+
+## 可用 Skills
+
+### `clawchat-officecli`
+
+指导 ClawChat 中的 Office 文档任务使用官方 OfficeCLI Skills。它会将文档创建、读取、编辑、格式化和验证工作路由到合适的 OfficeCLI 工作流，同时支持通过 Liveware 进行浏览器预览和托管文件目录访问。
+
+### `tarot-arcana`
+
+通过本地脚本真实抽取塔罗牌，而不是虚构抽牌结果，并提供用于自我探索的塔罗解读。支持单牌阵和三牌阵，侧重务实的心理分析以及可执行、非预言式的建议。
+
+## 社区
+
+访问 [Clawling 官方网站](https://clawling.com)了解更多信息。如需社区帮助、提问或参与讨论，请加入我们的 [官方 Discord](https://discord.gg/qrfNqTFaG)。
