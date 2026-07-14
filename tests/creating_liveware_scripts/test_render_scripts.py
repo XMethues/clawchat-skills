@@ -808,6 +808,12 @@ class RenderSetupTests(unittest.TestCase):
 
     def test_existing_launcher_is_invoked_without_replacing_its_lifecycle(self) -> None:
         analysis = dict(READY)
+        analysis["evidence"] = [
+            {
+                "path": "scripts/start-server.sh",
+                "reason": "Command consumes exported PORT environment variable",
+            }
+        ]
         analysis["adapter"] = {
             "kind": "existing-launcher",
             "workdir": ".",
@@ -965,16 +971,96 @@ class RenderSetupTests(unittest.TestCase):
         )
         self.assert_bash_syntax(text)
 
-    def test_generated_log_path_field_uses_safe_option_terminators(self) -> None:
-        analysis = copy.deepcopy(READY)
-        log_path = '-p $(nope) `nope` "quoted";semi.log'
-        analysis["adapter"]["log"] = {"owner": "generated-start", "path": log_path}
+    def test_generated_log_path_requires_a_normalized_absolute_or_home_path(self) -> None:
+        valid_paths = (
+            "/var/tmp/sample-skill.server.log",
+            "$HOME/.clawling/apps/sample-skill.server.log",
+            "${HOME}/.clawling/apps/sample-skill.server.log",
+        )
+        for log_path in valid_paths:
+            with self.subTest(valid=log_path):
+                analysis = copy.deepcopy(READY)
+                analysis["adapter"]["log"] = {
+                    "owner": "generated-start",
+                    "path": log_path,
+                }
+                text = self.module.render_start(analysis)
+                self.assertIn("SERVER_LOG=", text)
+                self.assertIn('mkdir -p -- "$(dirname -- "$SERVER_LOG")"', text)
+                self.assert_bash_syntax(text)
 
-        text = self.module.render_start(analysis)
+        invalid_paths = (
+            "server.log",
+            "logs/server.log",
+            "$HOME/../server.log",
+            "${HOME}/logs/../server.log",
+            "/var/tmp/../server.log",
+            "/var//tmp/server.log",
+        )
+        for log_path in invalid_paths:
+            with self.subTest(invalid=log_path):
+                analysis = copy.deepcopy(READY)
+                analysis["adapter"]["log"] = {
+                    "owner": "generated-start",
+                    "path": log_path,
+                }
+                with self.assertRaisesRegex(ValueError, "log path|normalized|absolute"):
+                    self.module.render_start(analysis)
 
-        self.assertIn(f"SERVER_LOG={shlex.quote(log_path)}", text)
-        self.assertIn('mkdir -p -- "$(dirname -- "$SERVER_LOG")"', text)
-        self.assert_bash_syntax(text)
+    def test_command_port_placeholder_is_standalone_and_unique(self) -> None:
+        for kind in ("managed-command", "existing-launcher"):
+            for command in (
+                ["python3", "server.py", "--port={port}"],
+                ["python3", "server.py", "{port}", "{port}"],
+            ):
+                with self.subTest(kind=kind, command=command):
+                    analysis = copy.deepcopy(READY)
+                    analysis["adapter"]["kind"] = kind
+                    analysis["adapter"]["command"] = command
+                    analysis["adapter"]["log"] = {"owner": "target", "path": None}
+                    with self.assertRaisesRegex(ValueError, "port.*placeholder|\{port\}"):
+                        self.module.render_start(analysis)
+
+    def test_dynamic_command_may_consume_exported_port_without_a_placeholder(self) -> None:
+        for kind, command in (
+            ("managed-command", ["npm", "run", "liveware"]),
+            ("existing-launcher", ["bash", "scripts/start-liveware.sh"]),
+        ):
+            with self.subTest(kind=kind):
+                analysis = copy.deepcopy(READY)
+                analysis["adapter"]["kind"] = kind
+                analysis["adapter"]["command"] = command
+                analysis["adapter"]["required_commands"] = [command[0]]
+                analysis["adapter"]["log"] = {"owner": "target", "path": None}
+                analysis["evidence"] = [
+                    {
+                        "path": "liveware/package.json",
+                        "reason": "Command consumes exported PORT environment variable",
+                    }
+                ]
+                text = self.module.render_start(analysis)
+                self.assertIn("export PORT", text)
+                self.assert_bash_syntax(text)
+
+    def test_zero_placeholder_requires_exact_exported_port_evidence(self) -> None:
+        for evidence in (
+            [],
+            [{"path": "liveware/package.json", "reason": "Node server entrypoint"}],
+            [
+                {
+                    "path": "liveware/package.json",
+                    "reason": "command consumes exported PORT environment variable",
+                }
+            ],
+        ):
+            with self.subTest(evidence=evidence):
+                analysis = copy.deepcopy(READY)
+                analysis["adapter"]["command"] = ["npm", "run", "liveware"]
+                analysis["adapter"]["required_commands"] = ["npm"]
+                analysis["adapter"]["log"] = {"owner": "target", "path": None}
+                analysis["evidence"] = evidence
+                with self.assertRaisesRegex(ValueError, "exported PORT.*evidence"):
+                    self.module.render_start(analysis)
 
     def test_static_path_field_encodes_shell_syntax_and_option_like_data(self) -> None:
         analysis = copy.deepcopy(READY)
@@ -1203,6 +1289,12 @@ class RenderSetupTests(unittest.TestCase):
     def test_all_adapter_variants_pass_bash_syntax_without_execution(self) -> None:
         managed = copy.deepcopy(READY)
         existing = copy.deepcopy(READY)
+        existing["evidence"] = [
+            {
+                "path": "scripts/start-server.sh",
+                "reason": "Command consumes exported PORT environment variable",
+            }
+        ]
         existing["adapter"] = {
             "kind": "existing-launcher",
             "workdir": ".",

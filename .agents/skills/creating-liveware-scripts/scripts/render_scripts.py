@@ -44,6 +44,7 @@ ADAPTER_PROPERTIES = frozenset(
 READINESS_PROPERTIES = frozenset({"kind", "url"})
 LOG_PROPERTIES = frozenset({"owner", "path"})
 EVIDENCE_PROPERTIES = frozenset({"path", "reason"})
+PORT_ENV_EVIDENCE_REASON = "Command consumes exported PORT environment variable"
 
 
 def require_exact_properties(
@@ -341,6 +342,37 @@ def shell_log_path(value: str) -> str:
     return shlex.quote(value)
 
 
+def require_generated_log_path(value: object) -> str:
+    text = require_shell_text(value, "Generated-start log path")
+    for prefix in ("${HOME}/", "$HOME/"):
+        if text.startswith(prefix):
+            suffix = text[len(prefix):]
+            path = Path(suffix)
+            if (
+                not suffix
+                or suffix == "."
+                or path.is_absolute()
+                or ".." in path.parts
+                or os.path.normpath(suffix) != suffix
+            ):
+                raise ValueError(
+                    "Generated-start log path must be normalized under $HOME without traversal."
+                )
+            return text
+    path = Path(text)
+    if (
+        not path.is_absolute()
+        or text == "/"
+        or text.startswith("//")
+        or ".." in path.parts
+        or os.path.normpath(text) != text
+    ):
+        raise ValueError(
+            "Generated-start log path must be a normalized absolute path or use $HOME/."
+        )
+    return text
+
+
 def validate_adapter(analysis: dict[str, object]) -> dict[str, object]:
     adapter = require_exact_properties(
         analysis.get("adapter"),
@@ -354,8 +386,15 @@ def validate_adapter(analysis: dict[str, object]) -> dict[str, object]:
     command = adapter["command"]
     if type(command) is not list or not all(isinstance(item, str) for item in command):
         raise ValueError("Adapter command must be an argv list.")
+    port_placeholders = 0
     for item in command:
         require_shell_text(item, "Adapter command argument", allow_empty=True)
+        if "{port}" in item:
+            if item != "{port}":
+                raise ValueError("The command port placeholder must be a standalone {port} argv item.")
+            port_placeholders += 1
+    if port_placeholders > 1:
+        raise ValueError("The command may contain at most one standalone {port} placeholder.")
     required = adapter["required_commands"]
     if type(required) is not list or not all(isinstance(item, str) for item in required):
         raise ValueError("required_commands must be a string list.")
@@ -391,6 +430,15 @@ def validate_adapter(analysis: dict[str, object]) -> dict[str, object]:
         raise ValueError("Managed and existing-launcher adapters require a command.")
     if kind == "external" and command:
         raise ValueError("External adapters must not define a start command.")
+    if kind in {"managed-command", "existing-launcher"} and port_placeholders == 0:
+        evidence = analysis.get("evidence")
+        if type(evidence) is not list or not any(
+            type(item) is dict and item.get("reason") == PORT_ENV_EVIDENCE_REASON
+            for item in evidence
+        ):
+            raise ValueError(
+                "A dynamic command without {port} requires exact exported PORT evidence."
+            )
     readiness = require_exact_properties(
         adapter["readiness"],
         READINESS_PROPERTIES,
@@ -404,8 +452,10 @@ def validate_adapter(analysis: dict[str, object]) -> dict[str, object]:
         raise ValueError("Dynamic readiness URL must use the exact loopback {port} structure.")
     if kind in {"existing-launcher", "external"} and (owner != "target" or log_path is not None):
         raise ValueError(f"{kind} adapters must retain target log ownership.")
-    if kind == "managed-command" and owner == "generated-start" and not isinstance(log_path, str):
-        raise ValueError("Generated-start logging requires an explicit log file.")
+    if kind == "managed-command" and owner == "generated-start":
+        if not isinstance(log_path, str):
+            raise ValueError("Generated-start logging requires an explicit log file.")
+        require_generated_log_path(log_path)
     return adapter
 
 

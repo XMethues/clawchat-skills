@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+import stat
 import tempfile
 import unittest
 from pathlib import Path
@@ -62,6 +63,52 @@ class SkillContentTests(unittest.TestCase):
             "If repair proof fails, show the read-only canonical diff and do not write",
         ):
             self.assertIn(phrase, self.skill_text)
+
+    def test_workflow_uses_complete_python_commands_and_external_analysis_file(self) -> None:
+        commands = (
+            'python3 -B .agents/skills/creating-liveware-scripts/scripts/analyze_target.py "$TARGET" >"$ANALYSIS_JSON"',
+            'python3 -B .agents/skills/creating-liveware-scripts/scripts/render_scripts.py "$TARGET" "$ANALYSIS_JSON"',
+            'python3 -B .agents/skills/creating-liveware-scripts/scripts/render_scripts.py "$TARGET" "$ANALYSIS_JSON" --apply',
+            'python3 -B .agents/skills/creating-liveware-scripts/scripts/validate_scripts.py "$TARGET" --analysis "$ANALYSIS_JSON"',
+            'python3 -B .agents/skills/creating-liveware-scripts/scripts/validate_scripts.py "$TARGET"',
+        )
+        for command in commands:
+            self.assertIn(command, self.skill_text)
+        self.assertIn(
+            'ANALYSIS_DIR="$(mktemp -d /tmp/creating-liveware-scripts.XXXXXX)"',
+            self.skill_text,
+        )
+        self.assertIn('ANALYSIS_JSON="$ANALYSIS_DIR/analysis.json"', self.skill_text)
+        self.assertIn('>"$ANALYSIS_JSON" || test "$?" -eq 2', self.skill_text)
+        for path in (SKILL_ROOT / "scripts").glob("*.py"):
+            self.assertEqual(path.stat().st_mode & stat.S_IXUSR, 0)
+
+    def test_workflow_scopes_non_ready_and_port_behavior_exactly(self) -> None:
+        for phrase in (
+            "Generate and Repair require ready analysis",
+            "Audit continues when analysis is not ready",
+            "Audit a non-ready target without `--analysis`",
+            "Generate/Repair only: status is not `ready`",
+            "Only a managed-command adapter refuses an occupied port",
+        ):
+            self.assertIn(phrase, self.skill_text + "\n" + self.contract_text)
+
+    def test_skill_stays_concise_and_example_uses_exact_readiness_url(self) -> None:
+        body = self.skill_text.split("---", 2)[2]
+        self.assertLessEqual(len(re.findall(r"\b[\w$<>/{}`.-]+\b", body)), 500)
+        self.assertIn("http://127.0.0.1:{port}/healthz", self.skill_text)
+
+    def test_contract_defines_log_path_and_port_token_rules(self) -> None:
+        for phrase in (
+            "normalized absolute path",
+            "`$HOME/` or `${HOME}/`",
+            "must not contain `..` or control characters",
+            "standalone `{port}` argv item",
+            "at most once",
+            "consumes the exported `PORT` environment variable",
+            'reason exactly `Command consumes exported PORT environment variable`',
+        ):
+            self.assertIn(phrase, self.contract_text)
 
     def test_audit_continues_for_non_ready_analysis_without_writing(self) -> None:
         for phrase in (

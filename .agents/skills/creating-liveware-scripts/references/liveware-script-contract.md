@@ -19,6 +19,10 @@ The top-level object requires `schema_version`, `status`, `target_root`, `skill_
 
 A ready `adapter` has exactly `kind`, `workdir`, `command`, `required_commands`, `default_port`, `readiness`, and `log`. A readiness object has exactly `kind` and `url`; a log object has exactly `owner` and `path`. Adapter `workdir`, `static_dir`, and evidence paths are target-relative. Commands are control-character-free argv arrays. Required command names cannot be option-like or contain shell syntax. Dynamic ports are exact JSON integers from `1` through `65535`; booleans and floats are invalid. Dynamic readiness uses kind `http` and a URL starting with exact `http://127.0.0.1:{port}/`, with `{port}` appearing once.
 
+In a dynamic command, `{port}` is valid only as a standalone `{port}` argv item and may appear at most once. A command with no placeholder is valid only when project or user evidence confirms that the command consumes the exported `PORT` environment variable; record the evidence reason exactly `Command consumes exported PORT environment variable`. Never rewrite `--port={port}` or another embedded form implicitly; require an explicit argv contract.
+
+When `log.owner` is `generated-start`, `log.path` must be a lexically normalized absolute path or use the exact `$HOME/` or `${HOME}/` form. It must not contain `..` or control characters. Relative paths, repeated separators, and alternate lexical forms are invalid. Analyzer-produced `$HOME/.clawling/apps/<skill-name>.server.log` paths satisfy this rule.
+
 Static adapters require `workdir == static_dir`, empty command and required-command arrays, null port and readiness, and target-owned logging with a null path. Managed and existing-launcher adapters require a nonempty command; external adapters require an empty command. External and existing-launcher adapters require target-owned logging with a null path. A managed command may use target-owned logging, or generated-start logging with an explicit path. The four adapter kinds are:
 
 - `managed-command`: launch the confirmed argv command, export `PORT`, preserve declared logging, refuse an occupied port before launching, and wait for readiness.
@@ -26,7 +30,7 @@ Static adapters require `workdir == static_dir`, empty command and required-comm
 - `external`: start nothing, preserve target lifecycle and logging ownership, and wait for the externally managed service.
 - `static`: start nothing and bind the confirmed target-relative static directory.
 
-Treat Python and Node detection only as evidence-based conveniences. Treat Docker, s6, supervisor, custom service managers, conflicting entrypoints, and unknown ports as ambiguous until the user confirms the interface. Never convert a command into `shell=True` or an unquoted shell string.
+Inspect lifecycle evidence before returning any Python, Node, or static automatic candidate. A noncanonical `liveware/scripts/start.sh`, Docker or Compose configuration, supervisor or s6 configuration, matching lifecycle launcher, or reference lifecycle declaration makes the result ambiguous and must appear in evidence. An exact generated start script is exempt only when its strict manifest decodes for the current target and skill and every byte equals a fresh canonical render; plausible or tampered markers are not proof. Treat all other custom service managers, conflicting entrypoints, and unknown ports as ambiguous until the user confirms the interface. Never convert a command into `shell=True` or an unquoted shell string.
 
 ## Canonical Analysis Manifest
 
@@ -50,7 +54,7 @@ Validate a stored app with `liveware app inspect`. Otherwise run `liveware app l
 
 Read and validate the standard state file. If it is missing or registration is incomplete, tell the user to run setup and exit; never invoke setup automatically.
 
-Keep the target server adapter between exact markers. Preserve the user-supplied server interface according to evidence; do not prescribe a program or service shape. For dynamic services, preserve the confirmed command, lifecycle, readiness, and logging strategy; validate `PORT`; wait for readiness; and bind only `http://127.0.0.1:<port>`. For static content, start no server and use `liveware tunnel bind-static`. Never terminate an unknown process.
+Keep the target server adapter between exact markers. Preserve the user-supplied server interface according to evidence; do not prescribe a program or service shape. For dynamic services, preserve the confirmed command, lifecycle, readiness, and logging strategy; validate `PORT`; wait for readiness; and bind only `http://127.0.0.1:<port>`. Only a managed-command adapter refuses an occupied port before launch. An existing-launcher retains its lifecycle, an external adapter expects its listener, and static content uses `liveware tunnel bind-static` without starting a server. Never terminate an unknown process.
 
 After a successful bind, print `Liveware ready: <public-url>` to stdout. This is command output, not server logging. Keep server and tunnel logs under the target project's existing strategy. Capture a directly launched plain process only when the target has no logging strategy and the confirmed adapter assigns logging to the generated start script.
 

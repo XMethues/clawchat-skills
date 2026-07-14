@@ -229,6 +229,63 @@ test -f "$STATE_FILE"
                     {(item.code, item.path, item.message) for item in findings},
                 )
 
+    def test_relative_generated_log_path_is_an_explicit_analysis_finding(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            analysis = self.analysis(Path(tmp), "managed-command")
+            setup, start = self.generated(analysis)
+        invalid = copy.deepcopy(analysis)
+        invalid["adapter"]["log"]["path"] = "logs/server.log"
+        findings = self.validator.validate_texts(setup, start, analysis=invalid)
+        self.assertIn(
+            (
+                "LW018",
+                "analysis.json",
+                "Resolved schema-version-1 analysis with no issues is required.",
+            ),
+            {(item.code, item.path, item.message) for item in findings},
+        )
+
+    def test_embedded_or_duplicate_port_tokens_are_analysis_findings(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            analysis = self.analysis(Path(tmp), "managed-command")
+            setup, start = self.generated(analysis)
+        for command in (
+            ["python3", "server.py", "--port={port}"],
+            ["python3", "server.py", "{port}", "{port}"],
+        ):
+            with self.subTest(command=command):
+                invalid = copy.deepcopy(analysis)
+                invalid["adapter"]["command"] = command
+                findings = self.validator.validate_texts(setup, start, analysis=invalid)
+                self.assertIn(
+                    (
+                        "LW018",
+                        "analysis.json",
+                        "Resolved schema-version-1 analysis with no issues is required.",
+                    ),
+                    {(item.code, item.path, item.message) for item in findings},
+                )
+
+    def test_zero_port_token_without_exact_evidence_is_an_analysis_finding(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            analysis = self.analysis(Path(tmp), "managed-command")
+            setup, start = self.generated(analysis)
+        invalid = copy.deepcopy(analysis)
+        invalid["adapter"]["command"] = ["npm", "run", "liveware"]
+        invalid["adapter"]["required_commands"] = ["npm"]
+        invalid["evidence"] = [
+            {"path": "liveware/package.json", "reason": "Node server entrypoint"}
+        ]
+        findings = self.validator.validate_texts(setup, start, analysis=invalid)
+        self.assertIn(
+            (
+                "LW018",
+                "analysis.json",
+                "Resolved schema-version-1 analysis with no issues is required.",
+            ),
+            {(item.code, item.path, item.message) for item in findings},
+        )
+
     def test_schema_invalid_manifests_map_to_both_script_contract_codes(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             analysis = self.analysis(Path(tmp), "managed-command")
