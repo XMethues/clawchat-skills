@@ -1363,8 +1363,9 @@ git commit -m "feat: render liveware start adapters"
 
 - Treat `analyze_target.py` as the only allowed manifest schema. Require all analyzer top-level fields except optional `display_name`, and reject all unknown properties at the top level, adapter, readiness, log, and evidence-item levels.
 - Remove credential-name classification. Credential-looking and benign extension keys fail identically as unknown schema properties. Preserve arbitrary text values, including sensitive-looking words, in allowed `display_name` and evidence `reason` fields.
-- Require exact JSON value types, including integer (not boolean or float) `schema_version` and dynamic `default_port`, exact adapter properties and kind semantics, dynamic `{kind, url}` readiness or static `null`, exact `{owner, path}` log, present `static_dir`, and exact string-valued `{path, reason}` evidence items.
+- Require exact JSON value types, including integer (not boolean or float) `schema_version` and dynamic `default_port`, exact adapter properties and kind semantics, dynamic `{kind, url}` readiness or static `null`, exact `{owner, path}` log, present `static_dir`, and exact string-valued `{path, reason}` evidence items. Reject duplicate keys in explicit analysis JSON, require target-relative evidence paths, require static `workdir == static_dir`, and require one lexical normalized form for `target_root`.
 - Map schema-invalid embedded manifests and schema-invalid explicit analysis deterministically to `LW018`/`LW019`; they can never produce a zero-finding result. Cover analyzer-produced ready output and every supported user-confirmed adapter kind without executing generated scripts or runtime services.
+- Run Python AST syntax validation even for an otherwise byte-identical canonical setup template, while retaining `bash -n` as the validator's only subprocess.
 
 - [ ] **Step 1: Write failing validator tests**
 

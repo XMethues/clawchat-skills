@@ -398,6 +398,33 @@ test -f "$STATE_FILE"
             {(item.code, item.path, item.message) for item in findings},
         )
 
+    def test_canonical_setup_is_always_checked_for_python_syntax(self) -> None:
+        renderer = self.validator.load_renderer()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            assets = root / "assets"
+            assets.mkdir()
+            original_assets = Path(renderer.ASSET_ROOT)
+            (assets / "setup.py.tmpl").write_text(
+                (original_assets / "setup.py.tmpl").read_text(encoding="utf-8")
+                + "\nif :\n",
+                encoding="utf-8",
+            )
+            (assets / "start.sh.tmpl").write_text(
+                (original_assets / "start.sh.tmpl").read_text(encoding="utf-8"),
+                encoding="utf-8",
+            )
+            analysis = self.analysis(root)
+            with mock.patch.object(renderer, "ASSET_ROOT", assets):
+                setup = renderer.render_setup(analysis)
+                start = renderer.render_start(analysis)
+                findings = self.validator.validate_texts(setup, start, analysis=analysis)
+
+        self.assertIn(
+            ("LW006", "liveware/scripts/setup.py", "Python syntax error: invalid syntax"),
+            {(item.code, item.path, item.message) for item in findings},
+        )
+
     def test_validator_only_spawns_bash_syntax_check(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             target = write_target(Path(tmp))
@@ -460,6 +487,26 @@ test -f "$STATE_FILE"
             invalid = self.run_cli(target, analysis_path)
             self.assertEqual(invalid.returncode, 1)
             self.assertEqual({item["code"] for item in json.loads(invalid.stdout)}, {"LW018"})
+
+    def test_cli_rejects_duplicate_keys_in_explicit_analysis(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            target = write_target(root)
+            analysis = self.analysis(target)
+            self.write_scripts(target, *self.generated(analysis))
+            duplicate = json.dumps(analysis, ensure_ascii=False).replace(
+                '"schema_version": 1',
+                '"schema_version": 2, "schema_version": 1',
+                1,
+            )
+            analysis_path = root / "analysis.json"
+            analysis_path.write_text(duplicate, encoding="utf-8")
+
+            result = self.run_cli(target, analysis_path)
+
+        self.assertEqual(result.returncode, 1)
+        self.assertEqual(result.stderr, "")
+        self.assertEqual({item["code"] for item in json.loads(result.stdout)}, {"LW018"})
 
     def test_cli_returns_structured_findings_for_invalid_utf8_scripts(self) -> None:
         for name, code in (("setup.py", "LW018"), ("start.sh", "LW019")):

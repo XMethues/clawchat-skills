@@ -224,8 +224,8 @@ def _validate_texts_with_manifest(
 ) -> tuple[list[Finding], dict[str, object] | None]:
     findings: list[Finding] = []
     canonical_pair, embedded = _manifest_gate(setup, start, findings, analysis)
+    _validate_python_syntax(setup, findings)
     if not canonical_pair:
-        _validate_python_syntax(setup, findings)
         _setup_diagnostics(setup, findings)
         _start_diagnostics(start, findings)
         _obvious_cross_script_diagnostics(setup, start, findings)
@@ -346,16 +346,17 @@ def print_findings(findings: list[Finding]) -> None:
 
 
 def load_cli_analysis(path: Path) -> tuple[dict[str, object] | None, Finding | None]:
+    renderer = load_renderer()
     try:
-        text = path.read_text(encoding="utf-8")
+        payload = renderer.load_analysis(path)
     except (OSError, UnicodeError):
         return None, Finding("LW018", str(path), "Analysis file could not be read.")
-    try:
-        payload = json.loads(text)
-    except json.JSONDecodeError:
-        return None, Finding("LW018", str(path), "Analysis file is not valid JSON.")
-    if not isinstance(payload, dict):
-        return None, Finding("LW018", str(path), "Analysis JSON must be an object.")
+    except (KeyError, TypeError, ValueError):
+        return None, Finding(
+            "LW018",
+            str(path),
+            "Analysis file is not valid strict analyzer JSON.",
+        )
     return payload, None
 
 

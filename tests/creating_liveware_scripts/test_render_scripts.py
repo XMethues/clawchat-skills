@@ -337,6 +337,13 @@ class RenderSetupTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, "evidence|schema|required|additional|property"):
                     self.module.encode_analysis_manifest(analysis)
 
+        for path in ("/etc/passwd", "../outside", "evidence/../../outside"):
+            with self.subTest(path=path):
+                analysis = copy.deepcopy(READY)
+                analysis["evidence"] = [{"path": path, "reason": "Untrusted path"}]
+                with self.assertRaisesRegex(ValueError, "evidence|target-relative"):
+                    self.module.encode_analysis_manifest(analysis)
+
     def test_manifest_schema_enforces_exact_numeric_types_on_schema_fields(self) -> None:
         for field, value in (
             ("schema_version", True),
@@ -388,6 +395,41 @@ class RenderSetupTests(unittest.TestCase):
                 self.assertEqual(self.module.decode_analysis_manifest(payload), analysis)
                 self.module.render_setup(analysis)
                 self.assert_bash_syntax(self.module.render_start(analysis))
+
+    def test_static_adapter_workdir_must_equal_static_dir(self) -> None:
+        analysis = copy.deepcopy(READY)
+        analysis["adapter"] = {
+            "kind": "static",
+            "workdir": "unrelated",
+            "command": [],
+            "required_commands": [],
+            "default_port": None,
+            "readiness": None,
+            "log": {"owner": "target", "path": None},
+        }
+        analysis["static_dir"] = "liveware/static"
+
+        with self.assertRaisesRegex(ValueError, "workdir|static_dir|Static"):
+            self.module.encode_analysis_manifest(analysis)
+
+    def test_target_root_must_have_one_lexical_canonical_form(self) -> None:
+        analysis = copy.deepcopy(READY)
+        analysis["target_root"] = "/tmp//sample-skill/."
+
+        with self.assertRaisesRegex(ValueError, "normalized"):
+            self.module.encode_analysis_manifest(analysis)
+
+    def test_analysis_json_loader_rejects_duplicate_keys(self) -> None:
+        duplicate = json.dumps(READY, ensure_ascii=False).replace(
+            '"schema_version": 1',
+            '"schema_version": 2, "schema_version": 1',
+            1,
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "analysis.json"
+            path.write_text(duplicate, encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "duplicate"):
+                self.module.load_analysis(path)
 
     def test_setup_rejects_non_ready_or_unresolved_analysis(self) -> None:
         cases = (
@@ -821,16 +863,17 @@ class RenderSetupTests(unittest.TestCase):
 
     def test_static_path_field_encodes_shell_syntax_and_option_like_data(self) -> None:
         analysis = copy.deepcopy(READY)
+        static_path = '-p $(nope) `nope` "quoted";semi'
         analysis["adapter"] = {
             "kind": "static",
-            "workdir": "liveware/static",
+            "workdir": static_path,
             "command": [],
             "required_commands": [],
             "default_port": None,
             "readiness": None,
             "log": {"owner": "target", "path": None},
         }
-        analysis["static_dir"] = '-p $(nope) `nope` "quoted";semi'
+        analysis["static_dir"] = static_path
 
         text = self.module.render_start(analysis)
 

@@ -83,7 +83,11 @@ def require_ready(analysis: dict[str, object]) -> None:
     if any(ord(character) < 32 or ord(character) == 127 for character in target_root):
         raise ValueError("Analysis target_root must not contain a control character.")
     target_path = Path(target_root)
-    if not target_path.is_absolute() or ".." in target_path.parts:
+    if (
+        not target_path.is_absolute()
+        or ".." in target_path.parts
+        or os.path.normpath(target_root) != target_root
+    ):
         raise ValueError("Analysis target_root must be an absolute normalized path.")
     skill_name = analysis["skill_name"]
     if isinstance(skill_name, str) and any(
@@ -102,6 +106,7 @@ def require_ready(analysis: dict[str, object]) -> None:
         item = require_exact_properties(item, EVIDENCE_PROPERTIES, "Analysis evidence item")
         if not isinstance(item["path"], str) or not isinstance(item["reason"], str):
             raise ValueError("Analysis evidence path and reason must be strings.")
+        require_target_relative_path(item["path"], "Analysis evidence path")
     validate_adapter(analysis)
 
 
@@ -207,9 +212,14 @@ def atomic_write(path: Path, text: str, mode: int = 0o755) -> None:
 
 
 def load_analysis(path: Path) -> dict[str, object]:
-    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload = json.loads(
+        path.read_text(encoding="utf-8"),
+        object_pairs_hook=_reject_duplicate_json_keys,
+        parse_constant=_reject_non_json_number,
+    )
     if not isinstance(payload, dict):
         raise ValueError("Analysis JSON must be an object.")
+    require_ready(payload)
     return payload
 
 
@@ -305,7 +315,7 @@ def validate_adapter(analysis: dict[str, object]) -> dict[str, object]:
     kind = adapter["kind"]
     if kind not in {"managed-command", "existing-launcher", "external", "static"}:
         raise ValueError("Analysis adapter kind is not renderable.")
-    require_target_relative_path(adapter["workdir"], "Adapter workdir")
+    workdir = require_target_relative_path(adapter["workdir"], "Adapter workdir")
     command = adapter["command"]
     if type(command) is not list or not all(isinstance(item, str) for item in command):
         raise ValueError("Adapter command must be an argv list.")
@@ -331,7 +341,9 @@ def validate_adapter(analysis: dict[str, object]) -> dict[str, object]:
             raise ValueError("Static adapters must not define commands, a port, or readiness.")
         if owner != "target" or log_path is not None:
             raise ValueError("Static adapters must retain target log ownership.")
-        require_target_relative_path(analysis["static_dir"], "Static directory")
+        static_dir = require_target_relative_path(analysis["static_dir"], "Static directory")
+        if workdir != static_dir:
+            raise ValueError("Static adapter workdir must equal static_dir.")
         return adapter
 
     static_dir = analysis["static_dir"]
