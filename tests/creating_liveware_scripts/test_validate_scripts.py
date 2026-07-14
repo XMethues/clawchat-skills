@@ -425,6 +425,23 @@ test -f "$STATE_FILE"
             {(item.code, item.path, item.message) for item in findings},
         )
 
+    def test_nul_in_setup_text_returns_syntax_and_contract_findings(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            analysis = self.analysis(Path(tmp))
+            setup, start = self.generated(analysis)
+
+        findings = self.validator.validate_texts(setup + "\x00", start)
+
+        self.assertIn(
+            (
+                "LW006",
+                "liveware/scripts/setup.py",
+                "Python syntax error: source contains invalid characters.",
+            ),
+            {(item.code, item.path, item.message) for item in findings},
+        )
+        self.assertIn("LW018", self.codes(findings))
+
     def test_canonical_setup_is_always_checked_for_python_syntax(self) -> None:
         renderer = self.validator.load_renderer()
         with tempfile.TemporaryDirectory() as tmp:
@@ -569,6 +586,29 @@ printf '%s\\n' 'killall server; pip install package; ${API_TOKEN}'
                 self.assertEqual(result.stderr, "")
                 payload = json.loads(result.stdout)
                 self.assertIn(code, {item["code"] for item in payload})
+
+    def test_cli_returns_json_for_nul_in_utf8_setup(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            target = write_target(Path(tmp))
+            analysis = self.analysis(target)
+            setup, start = self.generated(analysis)
+            self.write_scripts(target, setup + "\x00", start)
+
+            result = self.run_cli(target)
+
+        self.assertEqual(result.returncode, 1)
+        self.assertEqual(result.stderr, "")
+        payload = json.loads(result.stdout)
+        codes = {item["code"] for item in payload}
+        self.assertTrue({"LW006", "LW018"} <= codes)
+        self.assertIn(
+            {
+                "code": "LW006",
+                "path": "liveware/scripts/setup.py",
+                "message": "Python syntax error: source contains invalid characters.",
+            },
+            payload,
+        )
 
     def test_target_read_oserror_is_structured_before_bash(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

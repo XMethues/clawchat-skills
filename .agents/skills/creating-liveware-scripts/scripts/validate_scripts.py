@@ -56,6 +56,13 @@ def _validate_python_syntax(setup: str, findings: list[Finding]) -> None:
         ast.parse(setup)
     except SyntaxError as exc:
         add(findings, "LW006", SETUP_PATH, f"Python syntax error: {exc.msg}")
+    except (ValueError, UnicodeError):
+        add(
+            findings,
+            "LW006",
+            SETUP_PATH,
+            "Python syntax error: source contains invalid characters.",
+        )
 
 
 def _python_name(node: ast.AST) -> str | None:
@@ -70,7 +77,7 @@ def _python_name(node: ast.AST) -> str | None:
 def _setup_call_text(setup: str) -> str:
     try:
         tree = ast.parse(setup)
-    except SyntaxError:
+    except (SyntaxError, ValueError, UnicodeError):
         return ""
     relevant = {
         "getenv",
