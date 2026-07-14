@@ -4,7 +4,7 @@
 
 **Goal:** Build a repository-scoped Codex skill that safely generates, audits, and repairs ClawChat Liveware `setup.py` and `start.sh` files for arbitrary Hermes skill servers.
 
-**Architecture:** Create a read-only target analyzer, a deterministic renderer backed by two templates, and a static validator. Keep the target server adapter separate from the standard Liveware binding block so the skill can preserve Python, Node, static, existing-launcher, or externally managed server interfaces without standardizing the server itself.
+**Architecture:** Create a read-only target analyzer, a deterministic renderer backed by two templates, and a static validator. Static content is the only automatic ready adapter; Python and Node are evidence candidates until their complete dynamic interface is user-confirmed. Keep the target server adapter separate from the standard Liveware binding block so the skill can preserve Python, Node, static, existing-launcher, or externally managed server interfaces without standardizing the server itself.
 
 **Tech Stack:** Python 3 standard library, Bash, `unittest`, Codex skill metadata, and the existing `skill-creator` validation scripts.
 
@@ -19,8 +19,10 @@
 - Authenticate only through `clawchat_gateway.tools.liveware_login()`; never read, print, save, or directly pass a token.
 - Never install dependencies, delete Liveware apps, kill unknown processes, use `shell=True`, or bind a dynamic tunnel to a non-loopback upstream.
 - Treat ambiguous entrypoints, ports, lifecycle ownership, readiness checks, or logging ownership as blocking questions; never guess.
+- Never promote Python or Node source to a ready adapter automatically. Require user confirmation of exact argv, default port, readiness, lifecycle/logging ownership, and exported-`PORT` or standalone-`{port}` behavior.
 - Without a real user-provided Hermes/ClawChat/Liveware environment, run static checks only. Do not run generated setup/start scripts and do not create fake plugins, CLIs, servers, or successful runtime simulations.
 - Use `name` for `liveware app create`, state filenames, and identity. Use `display_name`, falling back to `name`, only for ClawChat registration.
+- Embed the same deterministic URL-safe Base64 schema-version-1 analysis manifest comment in setup.py and start.sh. Accept only the closed `analyze_target.py` schema with no additional properties at any object level. The generator never reads credentials, so credential fields cannot be embedded; ordinary words in allowed display/evidence text are not scanned.
 
 ## File Map
 
@@ -102,9 +104,17 @@ git commit -m "test: capture liveware skill baseline"
 - Create: `.agents/skills/creating-liveware-scripts/scripts/analyze_target.py`
 
 **Interfaces:**
-- Consumes: a target Hermes skill root and optional executable resolver
-- Produces: `analyze_target(target_root: Path, which: Callable[[str], str | None] = shutil.which) -> dict[str, object]`
+- Consumes: a target Hermes skill root
+- Produces: `analyze_target(target_root: Path) -> dict[str, object]`
 - JSON schema: `schema_version`, `status`, `target_root`, `skill_name`, `display_name`, `adapter`, `static_dir`, `evidence`, and `issues`
+
+**Final conservative dynamic-candidate amendment (supersedes older Task 2 snippets below):**
+
+- Static content is the only automatic `ready` adapter. Python and Node entrypoints always produce schema-complete `ambiguous` evidence until the user confirms exact argv, default port, readiness, lifecycle/logging ownership, and the `PORT` contract.
+- Do not infer Python or Node command, port, readiness, or logging from `DEFAULT_PORT`, routes, package scripts, or source text. Manual confirmed dynamic adapters remain supported by the renderer and validator.
+- A present non-object package `scripts` value returns structured non-ready JSON and CLI status `2`.
+- Discover bounded exact lifecycle filenames in the target root, `liveware/`, `scripts/`, and `liveware/scripts/`, plus manager and unit files. Strip Markdown bullet/number prefixes before bounded full-statement lifecycle matching.
+- Resolve every lifecycle/reference symlink before inspection. Contained symlinks may be inspected; outside or unresolvable paths block. Directory read/enumeration failures are structured non-ready results.
 
 - [ ] **Step 1: Initialize the repository skill with English UI metadata**
 
@@ -531,6 +541,14 @@ git commit -m "feat: analyze liveware script targets"
 - Consumes: a `status == "ready"` analysis mapping
 - Produces: `render_setup(analysis: dict[str, object]) -> str` and atomic mode-`0755` output at `liveware/scripts/setup.py`
 
+**Human-approved canonical-manifest amendment:**
+
+- Canonicalize the full ready analysis as UTF-8 JSON with sorted keys and compact separators, then encode it with URL-safe Base64.
+- Add exactly one `# LIVEWARE ANALYSIS V1: <payload>` comment to generated setup.py without executing or trusting target code.
+- Expose focused encode/decode/extract helpers for start rendering and validation. Reject malformed, duplicate, non-object, non-version-1, non-ready, or issue-bearing manifests.
+- Validate the closed analyzer schema before encoding or rendering. Require all analyzer top-level properties except optional `display_name`; reject every additional property uniformly instead of classifying credential-like names.
+- Require the exact adapter properties `kind`, `workdir`, `command`, `required_commands`, `default_port`, `readiness`, and `log`; exact dynamic readiness `{kind, url}`; exact log `{owner, path}`; and evidence as a list of exact string-valued `{path, reason}` objects. Enforce adapter/static-dir semantics and exact integer types for `schema_version` and dynamic `default_port`.
+
 - [ ] **Step 1: Write failing setup-render tests**
 
 Create the first part of `test_render_scripts.py`:
@@ -576,13 +594,14 @@ class RenderSetupTests(unittest.TestCase):
         text = self.module.render_setup(READY)
         self.assertIn('SKILL_NAME = "sample-skill"', text)
         self.assertIn('CLAWCHAT_APP_NAME = "示例应用"', text)
+        self.assertIn('"app_name": SKILL_NAME', text)
         self.assertIn('STATE_ROOT = Path.home() / ".clawling" / "apps"', text)
 
     def test_setup_uses_plugin_login_exact_recovery_and_atomic_state(self) -> None:
         text = self.module.render_setup(READY)
         self.assertIn("await tools.liveware_login()", text)
-        self.assertIn('run_liveware("app", "inspect", app_id)', text)
-        self.assertIn('run_liveware("app", "list", "--json")', text)
+        self.assertIn('run_liveware(binary, "app", "inspect", app_id)', text)
+        self.assertIn('run_liveware(binary, "app", "list", "--json")', text)
         self.assertIn('"--agent-type", "hermes"', text)
         self.assertIn("os.replace(temp_name, STATE_FILE)", text)
         self.assertNotIn("shell=True", text)
@@ -688,10 +707,12 @@ def load_state() -> dict[str, object] | None:
         state = json.loads(STATE_FILE.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
         raise fail(f"State file is invalid: {STATE_FILE}") from exc
+    if not isinstance(state, dict):
+        raise fail(f"State file is invalid: {STATE_FILE}")
     required = {
         "schema_version": SCHEMA_VERSION,
         "skill_name": SKILL_NAME,
-        "app_name": CLAWCHAT_APP_NAME,
+        "app_name": SKILL_NAME,
     }
     if any(state.get(key) != value for key, value in required.items()):
         raise fail(f"State file does not belong to {SKILL_NAME}.")
@@ -707,7 +728,7 @@ def save_state(app_id: str, registered: bool) -> dict[str, object]:
     state = {
         "schema_version": SCHEMA_VERSION,
         "skill_name": SKILL_NAME,
-        "app_name": CLAWCHAT_APP_NAME,
+        "app_name": SKILL_NAME,
         "app_id": app_id,
         "public_url": public_url(app_id),
         "registered": registered,
@@ -830,7 +851,7 @@ def render_setup(analysis: dict[str, object]) -> str:
     template = (ASSET_ROOT / "setup.py.tmpl").read_text(encoding="utf-8")
     replacements = {
         "@@SKILL_NAME@@": json.dumps(analysis["skill_name"], ensure_ascii=False),
-        "@@DISPLAY_NAME@@": json.dumps(analysis["display_name"], ensure_ascii=False),
+        "@@DISPLAY_NAME@@": json.dumps(analysis.get("display_name") or analysis["skill_name"], ensure_ascii=False),
     }
     for marker, value in replacements.items():
         template = template.replace(marker, value)
@@ -909,6 +930,26 @@ git commit -m "feat: render idempotent liveware setup"
 - Produces: `render_start(analysis: dict[str, object], existing: str | None = None) -> str`
 - Marker contract: `# BEGIN TARGET SERVER ADAPTER`, `# END TARGET SERVER ADAPTER`, `# BEGIN LIVEWARE BINDING`, and `# END LIVEWARE BINDING`
 
+**Human-approved hardening amendment (overrides conflicting snippets below):**
+
+- Require `target_root` to be a non-empty string that resolves to the requested target.
+- Reject a symlinked `liveware` or `liveware/scripts` parent and any read or write path that escapes the resolved target root.
+- Parse the four exact whole-line markers structurally. Require each marker exactly once, in adapter-begin, adapter-end, binding-begin, binding-end order, with no nesting.
+- Regenerate the approved adapter from current analysis. Preserve an existing adapter only when its block is byte-for-byte identical to that generated adapter; otherwise stop with `ValueError`.
+- Before binding-only repair, require exactly one current `SKILL_NAME=<skill-name>` assignment and the exact standard `STATE_FILE="${HOME}/.clawling/apps/${SKILL_NAME}.json"` line; otherwise stop instead of preserving stale scaffold identity.
+- Repair by splicing only the Liveware binding block into the existing text. Preserve every byte outside that block.
+- Treat analysis values as shell data. Validate target-relative paths and loopback readiness structure, reject control characters, and use shell-safe literal encoding. Preserve only the explicit `${PORT}` and `${HOME}` expansions required by the contract.
+- Reject option-like or malformed required-command names, use option terminators for command/path consumers where supported, and independently regression-test every interpolated shell field with metacharacter and option-like inputs.
+- Replace `assert`-based public input checks with deterministic `ValueError` validation.
+- Add RED-first regression tests for symlink containment, missing/non-string `target_root`, malformed/duplicate/reordered/nested markers, outside-block preservation, stale adapter rejection, adversarial shell values, readiness-before-bind ordering, and `bash -n` for all four adapter kinds.
+- Static tests may render and parse scripts but must not execute generated setup/start scripts or simulate a Liveware runtime.
+
+**Human-approved canonical-manifest repair amendment:**
+
+- Add exactly one `# LIVEWARE ANALYSIS V1: <payload>` comment to fresh start.sh output, identical to setup.py.
+- For repair, require the existing manifest to decode to the exact current analysis and require every byte outside the Liveware binding content to equal the fresh canonical scaffold. Any extra or changed scaffold content is unapproved and must stop repair.
+- Splice only the binding content after the canonical-scaffold comparison. The preserved outside bytes are therefore canonical and unchanged.
+
 - [ ] **Step 1: Add failing dynamic, static, and repair tests**
 
 Add these methods to `RenderSetupTests` before its final `if __name__` block:
@@ -941,18 +982,27 @@ Add these methods to `RenderSetupTests` before its final `if __name__` block:
         self.assertNotIn("SERVER_COMMAND=", text)
 
     def test_repair_replaces_only_the_standard_binding_block(self) -> None:
-        existing = """#!/usr/bin/env bash
-# BEGIN TARGET SERVER ADAPTER
-echo custom-server-adapter
-# END TARGET SERVER ADAPTER
-# BEGIN LIVEWARE BINDING
-echo obsolete-binding
-# END LIVEWARE BINDING
-"""
+        existing = self.module.render_start(READY)
+        existing = existing.replace(
+            self.module.BEGIN_BINDING,
+            "echo preserve-before-binding\n" + self.module.BEGIN_BINDING,
+        )
+        existing = existing.replace(
+            '"$LIVEWARE_BIN" tunnel bind "$APP_ID" "http://127.0.0.1:${PORT}"',
+            "echo obsolete-binding",
+        )
         text = self.module.render_start(READY, existing=existing)
-        self.assertIn("echo custom-server-adapter", text)
+        self.assertIn("echo preserve-before-binding", text)
         self.assertNotIn("obsolete-binding", text)
         self.assertIn('tunnel bind "$APP_ID"', text)
+
+    def test_repair_rejects_an_adapter_that_differs_from_current_analysis(self) -> None:
+        existing = self.module.render_start(READY).replace(
+            "SERVER_COMMAND=(python3 server.py --port \"${PORT}\")",
+            "SERVER_COMMAND=(node stale-server.js)",
+        )
+        with self.assertRaisesRegex(ValueError, "does not match current analysis"):
+            self.module.render_start(READY, existing=existing)
 
     def test_existing_launcher_is_invoked_without_replacing_its_lifecycle(self) -> None:
         analysis = dict(READY)
@@ -1048,6 +1098,8 @@ try:
         state = json.load(stream)
 except (OSError, json.JSONDecodeError):
     raise SystemExit("start: Liveware state is invalid.")
+if not isinstance(state, dict):
+    raise SystemExit("start: Liveware state is invalid.")
 app_id = state.get("app_id")
 url = state.get("public_url")
 url_re = re.compile(
@@ -1057,6 +1109,7 @@ url_re = re.compile(
 valid = (
     state.get("schema_version") == 1
     and state.get("skill_name") == skill_name
+    and state.get("app_name") == skill_name
     and isinstance(app_id, str)
     and app_re.fullmatch(app_id)
     and isinstance(url, str)
@@ -1289,6 +1342,41 @@ git commit -m "feat: render liveware start adapters"
 - Consumes: a target root or setup/start text
 - Produces: `validate_target(target: Path, analysis: dict[str, object] | None = None) -> list[Finding]` and JSON CLI output
 - Finding schema: `code`, `path`, and `message`
+
+**Human-approved semantic-validation amendment (overrides superficial string heuristics below):**
+
+- Parse setup Python with AST. Comments and unused strings must not satisfy login, registration, Hermes app creation, state identity, permission, atomic-write, forbidden-operation, credential, or `shell` rules.
+- Inspect structured argv/call data so forbidden installs, downloads/piped execution, app deletion, first-app fallback, credential environment reads, and subprocess shell use are detected across ordinary quoting and formatting variants.
+- Resolve local literal argv variables, literal `**kwargs`, and sequential shell assignments/commands conservatively. Validate call provenance instead of accepting an unrelated function with the same final name.
+- Tie state identity/mode/atomic findings to the dictionary actually serialized by the state writer and to real `json`/`os` filesystem APIs; unrelated dictionaries or fake `.replace()`/`.chmod()` methods must not satisfy or trigger state rules.
+- Parse start markers as exact whole lines with one ordered, non-nested pair for both adapter and binding blocks. Parse binding commands structurally so unrelated loopback/static text cannot mask a non-loopback dynamic upstream.
+- Require the binding command head and argument positions to match the Liveware CLI invocation; `echo`/`false` text containing `tunnel bind` is not a binding.
+- Detect setup invocation behavior independently from the approved guidance message. Detect unknown-process termination forms while allowing only a PID proven to be an owned child from `$!`.
+- Parse valid quoted heredoc delimiters containing hyphens, direct shell credential commands, variable-executed setup paths, wrappers such as `builtin kill`, and same-line sequential PID ownership updates.
+- With analysis, require schema version 1, `ready` status, no issues, matching non-empty `target_root`, stable identity, and canonical setup/start output consistent with every adapter field (kind, command, workdir, required commands, port, readiness, log, and static directory).
+- Reuse or load the reviewed renderer as the canonical consistency oracle without executing generated scripts. Treat renderer rejection or output mismatch as `LW018`/`LW019` findings.
+- Catch unreadable, malformed, or non-object analysis input and return deterministic JSON findings with exit status 1; do not leak tracebacks or argparse-only text for these contract failures.
+- Add RED-first behavioral tests for every finding family, comments/unused-string bypasses, alternate quoting/argv forms, first-app indexing, setup invocation plus guidance, kill variants/owned-child distinction, marker/binding bypasses, stable state identity, unresolved/mismatched analysis, all adapter fields, Bash syntax, and CLI JSON/exit behavior.
+- Keep validation static and read-only. Never execute generated setup/start scripts or create fake runtime success.
+
+**Human-approved canonical-manifest validation amendment (supersedes a general-purpose Python/Bash interpreter as the zero-finding gate):**
+
+- Extract exactly one manifest from setup.py and start.sh, decode both, and require the canonical analysis objects to be equal.
+- Re-render setup.py and start.sh from the embedded analysis. Require setup.py to equal fresh canonical output and start.sh to equal fresh canonical output; noncanonical scaffold or binding content is a finding.
+- When an explicit analysis is supplied, require it to equal the embedded canonical analysis before comparing renderer output.
+- Missing, duplicate, malformed, non-object, non-ready, issue-bearing, mismatched, or tampered manifests/scripts must produce deterministic `LW018`/`LW019` findings and can never return zero findings.
+- Keep concise legacy diagnostics for Tarot/Office and obvious unsafe patterns, but do not attempt to prove arbitrary Python/Bash safety with a hand-built interpreter. A legacy script without a valid canonical manifest fails the contract gate even if no specific heuristic fires.
+- Add RED-first tests for Unicode round trips, all adapter kinds, manifest duplication/corruption/mismatch, fake manifests on unsafe bodies, setup/start tampering, explicit-analysis mismatch, canonical repair rejection, legacy diagnostics, and JSON CLI behavior.
+
+**Strict analyzer-schema hardening amendment:**
+
+- Treat `analyze_target.py` as the only allowed manifest schema. Require all analyzer top-level fields except optional `display_name`, and reject all unknown properties at the top level, adapter, readiness, log, and evidence-item levels.
+- Remove credential-name classification. Credential-looking and benign extension keys fail identically as unknown schema properties. Preserve arbitrary text values, including sensitive-looking words, in allowed `display_name` and evidence `reason` fields.
+- Require exact JSON value types, including integer (not boolean or float) `schema_version` and dynamic `default_port`, exact adapter properties and kind semantics, dynamic `{kind, url}` readiness or static `null`, exact `{owner, path}` log, present `static_dir`, and exact string-valued `{path, reason}` evidence items. Reject duplicate keys in explicit analysis JSON, require target-relative evidence paths, require static `workdir == static_dir`, and require one lexical normalized form for `target_root`.
+- Require `/` or exactly one leading slash for canonical `target_root`; reject `//` and longer leading-slash aliases before manifest encoding, rendering, or validation. Confirm analyzer output uses the single-leading-slash form.
+- Substitute setup/start placeholders in one regex callback over the original template only. Require every known placeholder exactly once, reject unknown or malformed original-template tokens, and never rescan inserted analysis values, including literal `@@` or exact placeholder-looking strings.
+- Map schema-invalid embedded manifests and schema-invalid explicit analysis deterministically to `LW018`/`LW019`; they can never produce a zero-finding result. Cover analyzer-produced ready output and every supported user-confirmed adapter kind without executing generated scripts or runtime services.
+- Run Python AST syntax validation even for an otherwise byte-identical canonical setup template, while retaining `bash -n` as the validator's only subprocess.
 
 - [ ] **Step 1: Write failing validator tests**
 
@@ -1594,6 +1682,13 @@ class SkillContentTests(unittest.TestCase):
         self.assertIn("Do not run generated setup.py or start.sh without a real user-provided environment", text)
         self.assertIn("Report that runtime validation was not performed", text)
 
+    def test_skill_has_scan_sections_and_one_concrete_example(self) -> None:
+        text = (SKILL_ROOT / "SKILL.md").read_text(encoding="utf-8")
+        self.assertIn("## Quick Reference", text)
+        self.assertIn("## Example", text)
+        self.assertIn("## Common Mistakes", text)
+        self.assertIn("externally managed Node service", text)
+
 
 if __name__ == "__main__":
     unittest.main()
@@ -1636,6 +1731,20 @@ Standardize the Liveware integration boundary, not the target server. Preserve t
 9. Run `scripts/validate_scripts.py <target> --analysis <analysis.json>`, `python3 -m py_compile <target>/liveware/scripts/setup.py`, and `bash -n <target>/liveware/scripts/start.sh`.
 10. Report changed files, static validation results, and unresolved runtime requirements.
 
+## Quick Reference
+
+| Phase | Action | Stop condition |
+| --- | --- | --- |
+| Analyze | Run `analyze_target.py` and inspect evidence | Status is not `ready` |
+| Preview | Run `render_scripts.py` without `--apply` | Adapter conflicts with evidence |
+| Apply | Run the renderer with `--apply` | Existing script lacks safe markers |
+| Validate | Run contract, Python, Bash, and skill checks | Any static check fails |
+| Runtime | Use the real user-provided environment only | Authorization or environment is missing |
+
+## Example
+
+For an externally managed Node service documented at loopback port `4173` with readiness path `/healthz`, record an `external` adapter with an empty command, target-owned logging, port `4173`, and readiness `/healthz`. Generate a start script that launches nothing, waits for that endpoint, and binds the app to `http://127.0.0.1:4173`. Do not convert the service into a Node launcher or change its logging.
+
 ## Safety Boundary
 
 - Do not install dependencies, download a CLI or plugin, delete apps, kill unknown processes, read credentials, or use `shell=True`.
@@ -1650,6 +1759,14 @@ Standardize the Liveware integration boundary, not the target server. Preserve t
 - Replace only the marked Liveware binding block in `liveware/scripts/start.sh`.
 - Preserve a marked target server adapter when it matches current evidence.
 - Stop for review when an existing start script has no safe markers or conflicts with current project evidence.
+
+## Common Mistakes
+
+- Treating Python, Node, or static examples as a required server shape.
+- Guessing a port, entrypoint, process owner, readiness path, or log file from weak evidence.
+- Running setup or start against fixtures when no real environment was supplied.
+- Recovering the first app instead of one exact skill-name match.
+- Installing dependencies or replacing the target project's service manager.
 ```
 
 - [ ] **Step 4: Write the complete English contract reference**
@@ -1683,7 +1800,7 @@ Treat Python and Node detection as evidence-based conveniences. Treat Docker, s6
 
 ## State
 
-Use `$HOME/.clawling/apps/<skill-name>.json` with schema version `1` and fields `skill_name`, `app_name`, `app_id`, `public_url`, and `registered`. Set `.clawling` and `apps` directories to mode `0700`, the state file to mode `0600`, and replace the file atomically. Never store credentials.
+Use `$HOME/.clawling/apps/<skill-name>.json` with schema version `1` and fields `skill_name`, `app_name`, `app_id`, `public_url`, and `registered`. Store the stable skill `name` in both `skill_name` and `app_name`; never use `display_name` as state identity. Set `.clawling` and `apps` directories to mode `0700`, the state file to mode `0600`, and replace the file atomically. Never store credentials.
 
 ## Setup Contract
 
@@ -1771,11 +1888,11 @@ Expected GREEN result: all five samples load the skill, avoid runtime execution,
 
 Run one fresh subagent per scenario:
 
-1. Generate scripts for a disposable Tarot copy and statically validate the output.
+1. Generate scripts for a disposable static target and statically validate the output.
 2. Audit the tracked Office legacy scripts read-only and report fixed-path/state/app-recovery differences without modifying Office files.
-3. Analyze a disposable target with `SKILL.md` and a `liveware/server.py` that has no discoverable port; verify that the agent asks one concrete port question and does not render files.
+3. Analyze disposable Python and Node targets; verify that each remains non-ready and the agent requests confirmation of the exact argv, default port, readiness, lifecycle/logging ownership, and `PORT` contract without rendering files.
 
-Expected: the Tarot generated files pass `py_compile`, `bash -n`, and `validate_scripts.py`; Office receives findings only; the ambiguous target receives exactly one blocking question.
+Expected: the static target's generated files pass `py_compile`, `bash -n`, and `validate_scripts.py`; Office receives findings only; each dynamic target receives one blocking question covering its unresolved interface.
 
 - [ ] **Step 3: Refactor only demonstrated failures**
 
@@ -1831,14 +1948,15 @@ Expected: `quick_validate.py` succeeds; `rg` exits `1` with no matches because e
 
 - [ ] **Step 3: Generate into a disposable target and run static checks only**
 
-Create a disposable Tarot copy, preserve its legacy scripts under a nonstandard backup name inside that copy, analyze the real server, render the new fixed paths, and run static checks:
+Create a disposable static Hermes skill, analyze it, render the fixed paths, and run static checks:
 
 ```bash
 VERIFY_ROOT="$(mktemp -d /tmp/creating-liveware-scripts-verify.XXXXXX)"
-TARGET="$VERIFY_ROOT/tarot-arcana"
+TARGET="$VERIFY_ROOT/static-sample"
 ANALYSIS="$VERIFY_ROOT/analysis.json"
-cp -R creative/tarot-arcana "$TARGET"
-mv "$TARGET/liveware/scripts" "$TARGET/liveware/legacy-scripts"
+mkdir -p "$TARGET/liveware/static"
+printf '%s\n' '---' 'name: static-sample' 'description: Static verification target.' '---' >"$TARGET/SKILL.md"
+printf '%s\n' '<!doctype html>' >"$TARGET/liveware/static/index.html"
 python3 .agents/skills/creating-liveware-scripts/scripts/analyze_target.py "$TARGET" > "$ANALYSIS"
 python3 .agents/skills/creating-liveware-scripts/scripts/render_scripts.py "$TARGET" "$ANALYSIS" --apply
 python3 -m py_compile "$TARGET/liveware/scripts/setup.py"
@@ -1846,7 +1964,7 @@ bash -n "$TARGET/liveware/scripts/start.sh"
 python3 .agents/skills/creating-liveware-scripts/scripts/validate_scripts.py "$TARGET" --analysis "$ANALYSIS"
 ```
 
-Expected: all three commands exit `0`. Do not execute either generated script.
+Expected: all five commands exit `0`. Do not execute either generated script.
 
 - [ ] **Step 4: Confirm legacy regressions remain detectable**
 
@@ -1854,8 +1972,8 @@ Run the two legacy-text unit tests directly:
 
 ```bash
 python3 -m unittest \
-  tests.creating_liveware_scripts.test_validate_scripts.ValidateScriptsTests.test_detects_tarot_state_arguments_and_unknown_process_kill \
-  tests.creating_liveware_scripts.test_validate_scripts.ValidateScriptsTests.test_detects_office_legacy_state_and_first_app_fallback \
+  tests.creating_liveware_scripts.test_validate_scripts.ValidateScriptsTests.test_legacy_tarot_and_office_fail_with_concise_contract_codes \
+  tests.creating_liveware_scripts.test_validate_scripts.ValidateScriptsTests.test_legacy_diagnostics_ignore_comments_and_unused_python_strings \
   -v
 ```
 

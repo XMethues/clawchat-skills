@@ -19,3 +19,6 @@ skills-lock.json
 # Local Hermes test data
 .e2e/hermes-base/
 .e2e/hermes-test/
+
+# Local subagent-driven development state
+.superpowers/
