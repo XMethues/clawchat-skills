@@ -1,0 +1,4 @@
+interface:
+  display_name: "Create Hermes BOOT Hook"
+  short_description: "Create safe Hermes startup agent hooks"
+  default_prompt: "Use $create-hermes-boot-hook to create a Hermes BOOT.md startup hook for my requirements."
