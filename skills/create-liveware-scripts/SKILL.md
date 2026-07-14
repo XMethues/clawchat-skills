@@ -1,5 +1,5 @@
 ---
-name: creating-liveware-scripts
+name: create-liveware-scripts
 description: Use when creating, auditing, or repairing ClawChat Liveware setup.py and start.sh files for a Hermes skill.
 ---
 
@@ -9,6 +9,13 @@ description: Use when creating, auditing, or repairing ClawChat Liveware setup.p
 
 Preserve the supplied command, service manager, lifecycle, readiness, and logging behavior. Do not prescribe Python, Node, a script, or a service shape.
 
+## Bundled Resources
+
+- Read `references/liveware-script-contract.md` before generating or repairing scripts.
+- Use `scripts/analyze_target.py` for read-only target discovery.
+- Use `scripts/render_scripts.py` with `assets/setup.py.tmpl` and `assets/start.sh.tmpl` for deterministic generation and repair.
+- Use `scripts/validate_scripts.py` for static contract and security validation.
+
 ## Workflow
 
 1. Require target `SKILL.md`. Output only `liveware/scripts/setup.py` and `liveware/scripts/start.sh`. Read `references/liveware-script-contract.md` completely.
@@ -16,8 +23,8 @@ Preserve the supplied command, service manager, lifecycle, readiness, and loggin
 
 ```bash
 TARGET=/absolute/path/to/hermes-skill
-SKILL_DIR=/absolute/path/to/creating-liveware-scripts
-ANALYSIS_DIR="$(mktemp -d /tmp/creating-liveware-scripts.XXXXXX)"
+SKILL_DIR=/absolute/path/to/create-liveware-scripts
+ANALYSIS_DIR="$(mktemp -d /tmp/create-liveware-scripts.XXXXXX)"
 ANALYSIS_JSON="$ANALYSIS_DIR/analysis.json"
 python3 -B "$SKILL_DIR/scripts/analyze_target.py" "$TARGET" >"$ANALYSIS_JSON" || test "$?" -eq 2
 ```

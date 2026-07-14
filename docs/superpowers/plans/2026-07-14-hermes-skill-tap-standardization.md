@@ -158,7 +158,7 @@ Expected: `PASS: Hermes skill tap structure is complete` and exit status 0.
 ### Task 6: Update repository tests for migrated paths
 
 **Files:**
-- Modify: `tests/creating_liveware_scripts/test_validate_scripts.py`
+- Modify: `tests/create_liveware_scripts/test_validate_scripts.py`
 
 - [ ] **Step 1: Replace repository-fixture paths**
 

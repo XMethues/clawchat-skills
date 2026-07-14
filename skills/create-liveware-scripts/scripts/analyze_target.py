@@ -172,7 +172,7 @@ def target_relative(path: Path, target: Path) -> str:
 def load_renderer() -> ModuleType:
     path = Path(__file__).resolve().with_name("render_scripts.py")
     spec = importlib.util.spec_from_file_location(
-        "creating_liveware_scripts_analyzer_renderer",
+        "create_liveware_scripts_analyzer_renderer",
         path,
     )
     if spec is None or spec.loader is None:

@@ -1,4 +1,4 @@
-# Creating Liveware Scripts Skill Implementation Plan
+# Create Liveware Scripts Skill Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -10,7 +10,7 @@
 
 ## Global Constraints
 
-- Put the Codex skill at `.agents/skills/creating-liveware-scripts/`; it is not a Hermes skill.
+- Put the Codex skill at `.agents/skills/create-liveware-scripts/`; it is not a Hermes skill.
 - Write every skill-owned file, comment, help string, error message, template, and generated-script message in English.
 - Preserve user-provided commands, paths, service names, `name`, and `display_name` values without translation.
 - Generate only `<target-skill>/liveware/scripts/setup.py` and `<target-skill>/liveware/scripts/start.sh`.
@@ -28,28 +28,28 @@
 
 | Path | Responsibility |
 | --- | --- |
-| `.agents/skills/creating-liveware-scripts/SKILL.md` | English trigger metadata and agent workflow |
-| `.agents/skills/creating-liveware-scripts/agents/openai.yaml` | English UI metadata |
-| `.agents/skills/creating-liveware-scripts/scripts/analyze_target.py` | Read-only metadata, entrypoint, dependency, port, readiness, lifecycle, and logging analysis |
-| `.agents/skills/creating-liveware-scripts/scripts/render_scripts.py` | Deterministic generation and marker-aware repair |
-| `.agents/skills/creating-liveware-scripts/scripts/validate_scripts.py` | Static syntax, security, contract, and project-consistency checks |
-| `.agents/skills/creating-liveware-scripts/assets/setup.py.tmpl` | Complete idempotent Liveware application setup template |
-| `.agents/skills/creating-liveware-scripts/assets/start.sh.tmpl` | Server-adapter and Liveware-binding template |
-| `.agents/skills/creating-liveware-scripts/references/liveware-script-contract.md` | Detailed English protocol and state contract |
+| `.agents/skills/create-liveware-scripts/SKILL.md` | English trigger metadata and agent workflow |
+| `.agents/skills/create-liveware-scripts/agents/openai.yaml` | English UI metadata |
+| `.agents/skills/create-liveware-scripts/scripts/analyze_target.py` | Read-only metadata, entrypoint, dependency, port, readiness, lifecycle, and logging analysis |
+| `.agents/skills/create-liveware-scripts/scripts/render_scripts.py` | Deterministic generation and marker-aware repair |
+| `.agents/skills/create-liveware-scripts/scripts/validate_scripts.py` | Static syntax, security, contract, and project-consistency checks |
+| `.agents/skills/create-liveware-scripts/assets/setup.py.tmpl` | Complete idempotent Liveware application setup template |
+| `.agents/skills/create-liveware-scripts/assets/start.sh.tmpl` | Server-adapter and Liveware-binding template |
+| `.agents/skills/create-liveware-scripts/references/liveware-script-contract.md` | Detailed English protocol and state contract |
 | `tests/__init__.py` | Makes repository tests importable as a package |
-| `tests/creating_liveware_scripts/helpers.py` | Dynamic import and disposable target helpers |
-| `tests/creating_liveware_scripts/test_analyze_target.py` | Analyzer unit tests |
-| `tests/creating_liveware_scripts/test_render_scripts.py` | Template and repair unit tests |
-| `tests/creating_liveware_scripts/test_validate_scripts.py` | Validator and legacy-script regression tests |
-| `tests/creating_liveware_scripts/test_skill_content.py` | English-only and skill-metadata checks |
-| `docs/superpowers/evals/2026-07-13-creating-liveware-scripts.md` | Baseline and forward-test evidence |
+| `tests/create_liveware_scripts/helpers.py` | Dynamic import and disposable target helpers |
+| `tests/create_liveware_scripts/test_analyze_target.py` | Analyzer unit tests |
+| `tests/create_liveware_scripts/test_render_scripts.py` | Template and repair unit tests |
+| `tests/create_liveware_scripts/test_validate_scripts.py` | Validator and legacy-script regression tests |
+| `tests/create_liveware_scripts/test_skill_content.py` | English-only and skill-metadata checks |
+| `docs/superpowers/evals/2026-07-13-create-liveware-scripts.md` | Baseline and forward-test evidence |
 
 ---
 
 ### Task 1: Capture the No-Skill Baseline
 
 **Files:**
-- Create: `docs/superpowers/evals/2026-07-13-creating-liveware-scripts.md`
+- Create: `docs/superpowers/evals/2026-07-13-create-liveware-scripts.md`
 
 **Interfaces:**
 - Consumes: the approved design and read-only copies of `creative/tarot-arcana` and `productivity/clawchat-officecli`
@@ -60,7 +60,7 @@
 Run from the repository root:
 
 ```bash
-BASELINE_ROOT="$(mktemp -d /tmp/creating-liveware-scripts-baseline.XXXXXX)"
+BASELINE_ROOT="$(mktemp -d /tmp/create-liveware-scripts-baseline.XXXXXX)"
 cp -R creative/tarot-arcana "$BASELINE_ROOT/tarot-arcana"
 cp -R productivity/clawchat-officecli "$BASELINE_ROOT/clawchat-officecli"
 printf '%s\n' "$BASELINE_ROOT"
@@ -87,7 +87,7 @@ Create the final English Markdown record after all five samples finish. Use this
 - [ ] **Step 4: Commit the RED evidence**
 
 ```bash
-git add docs/superpowers/evals/2026-07-13-creating-liveware-scripts.md
+git add docs/superpowers/evals/2026-07-13-create-liveware-scripts.md
 git commit -m "test: capture liveware skill baseline"
 ```
 
@@ -96,12 +96,12 @@ git commit -m "test: capture liveware skill baseline"
 ### Task 2: Scaffold the Skill and Implement Target Analysis
 
 **Files:**
-- Create: `.agents/skills/creating-liveware-scripts/`
+- Create: `.agents/skills/create-liveware-scripts/`
 - Create: `tests/__init__.py`
-- Create: `tests/creating_liveware_scripts/__init__.py`
-- Create: `tests/creating_liveware_scripts/helpers.py`
-- Create: `tests/creating_liveware_scripts/test_analyze_target.py`
-- Create: `.agents/skills/creating-liveware-scripts/scripts/analyze_target.py`
+- Create: `tests/create_liveware_scripts/__init__.py`
+- Create: `tests/create_liveware_scripts/helpers.py`
+- Create: `tests/create_liveware_scripts/test_analyze_target.py`
+- Create: `.agents/skills/create-liveware-scripts/scripts/analyze_target.py`
 
 **Interfaces:**
 - Consumes: a target Hermes skill root
@@ -121,19 +121,19 @@ git commit -m "test: capture liveware skill baseline"
 Run:
 
 ```bash
-python3 /Users/nb-colin/.codex/skills/.system/skill-creator/scripts/init_skill.py creating-liveware-scripts \
+python3 /Users/nb-colin/.codex/skills/.system/skill-creator/scripts/init_skill.py create-liveware-scripts \
   --path .agents/skills \
   --resources scripts,references,assets \
   --interface 'display_name=Create Liveware Scripts' \
   --interface 'short_description=Generate and audit ClawChat Liveware scripts' \
-  --interface 'default_prompt=Use $creating-liveware-scripts to generate or audit setup.py and start.sh for this Hermes skill.'
+  --interface 'default_prompt=Use $create-liveware-scripts to generate or audit setup.py and start.sh for this Hermes skill.'
 ```
 
 Expected: the skill directory and `agents/openai.yaml` exist; no example files are created.
 
 - [ ] **Step 2: Write test import helpers**
 
-Create `tests/__init__.py` and `tests/creating_liveware_scripts/__init__.py` as empty files, then create `helpers.py` with:
+Create `tests/__init__.py` and `tests/create_liveware_scripts/__init__.py` as empty files, then create `helpers.py` with:
 
 ```python
 from __future__ import annotations
@@ -144,12 +144,12 @@ from pathlib import Path
 from types import ModuleType
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-SKILL_ROOT = REPO_ROOT / ".agents" / "skills" / "creating-liveware-scripts"
+SKILL_ROOT = REPO_ROOT / ".agents" / "skills" / "create-liveware-scripts"
 
 
 def load_skill_script(name: str) -> ModuleType:
     path = SKILL_ROOT / "scripts" / f"{name}.py"
-    spec = importlib.util.spec_from_file_location(f"creating_liveware_scripts_{name}", path)
+    spec = importlib.util.spec_from_file_location(f"create_liveware_scripts_{name}", path)
     if spec is None or spec.loader is None:
         raise RuntimeError(f"Cannot load {path}")
     module = importlib.util.module_from_spec(spec)
@@ -181,7 +181,7 @@ import unittest
 import json
 from pathlib import Path
 
-from tests.creating_liveware_scripts.helpers import load_skill_script, write_target
+from tests.create_liveware_scripts.helpers import load_skill_script, write_target
 
 
 class AnalyzeTargetTests(unittest.TestCase):
@@ -287,7 +287,7 @@ if __name__ == "__main__":
 Run:
 
 ```bash
-python3 -m unittest tests.creating_liveware_scripts.test_analyze_target -v
+python3 -m unittest tests.create_liveware_scripts.test_analyze_target -v
 ```
 
 Expected: import failure because `scripts/analyze_target.py` does not exist. This is the required RED state.
@@ -516,7 +516,7 @@ The analyzer intentionally returns `ambiguous` for unknown Node/service/custom l
 - [ ] **Step 6: Run analyzer tests and verify GREEN**
 
 ```bash
-python3 -m unittest tests.creating_liveware_scripts.test_analyze_target -v
+python3 -m unittest tests.create_liveware_scripts.test_analyze_target -v
 ```
 
 Expected: seven tests pass, with no network calls or target mutations.
@@ -524,7 +524,7 @@ Expected: seven tests pass, with no network calls or target mutations.
 - [ ] **Step 7: Commit the analyzer**
 
 ```bash
-git add .agents/skills/creating-liveware-scripts tests/creating_liveware_scripts
+git add .agents/skills/create-liveware-scripts tests/create_liveware_scripts
 git commit -m "feat: analyze liveware script targets"
 ```
 
@@ -533,9 +533,9 @@ git commit -m "feat: analyze liveware script targets"
 ### Task 3: Render the Idempotent Setup Script
 
 **Files:**
-- Create: `tests/creating_liveware_scripts/test_render_scripts.py`
-- Create: `.agents/skills/creating-liveware-scripts/assets/setup.py.tmpl`
-- Create: `.agents/skills/creating-liveware-scripts/scripts/render_scripts.py`
+- Create: `tests/create_liveware_scripts/test_render_scripts.py`
+- Create: `.agents/skills/create-liveware-scripts/assets/setup.py.tmpl`
+- Create: `.agents/skills/create-liveware-scripts/scripts/render_scripts.py`
 
 **Interfaces:**
 - Consumes: a `status == "ready"` analysis mapping
@@ -561,7 +561,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from tests.creating_liveware_scripts.helpers import load_skill_script
+from tests.create_liveware_scripts.helpers import load_skill_script
 
 
 READY = {
@@ -621,7 +621,7 @@ if __name__ == "__main__":
 - [ ] **Step 2: Run the render tests and verify RED**
 
 ```bash
-python3 -m unittest tests.creating_liveware_scripts.test_render_scripts -v
+python3 -m unittest tests.create_liveware_scripts.test_render_scripts -v
 ```
 
 Expected: import failure because `render_scripts.py` does not exist.
@@ -904,7 +904,7 @@ if __name__ == "__main__":
 - [ ] **Step 5: Run render tests and verify GREEN**
 
 ```bash
-python3 -m unittest tests.creating_liveware_scripts.test_render_scripts -v
+python3 -m unittest tests.create_liveware_scripts.test_render_scripts -v
 ```
 
 Expected: three setup-render tests pass. `py_compile` compiles the generated file but never imports or executes it.
@@ -912,7 +912,7 @@ Expected: three setup-render tests pass. `py_compile` compiles the generated fil
 - [ ] **Step 6: Commit setup rendering**
 
 ```bash
-git add .agents/skills/creating-liveware-scripts tests/creating_liveware_scripts/test_render_scripts.py
+git add .agents/skills/create-liveware-scripts tests/create_liveware_scripts/test_render_scripts.py
 git commit -m "feat: render idempotent liveware setup"
 ```
 
@@ -921,9 +921,9 @@ git commit -m "feat: render idempotent liveware setup"
 ### Task 4: Render and Repair the Start Script
 
 **Files:**
-- Modify: `tests/creating_liveware_scripts/test_render_scripts.py`
-- Create: `.agents/skills/creating-liveware-scripts/assets/start.sh.tmpl`
-- Modify: `.agents/skills/creating-liveware-scripts/scripts/render_scripts.py`
+- Modify: `tests/create_liveware_scripts/test_render_scripts.py`
+- Create: `.agents/skills/create-liveware-scripts/assets/start.sh.tmpl`
+- Modify: `.agents/skills/create-liveware-scripts/scripts/render_scripts.py`
 
 **Interfaces:**
 - Consumes: the approved adapter mapping and an optional existing marked `start.sh`
@@ -1048,7 +1048,7 @@ Add these methods to `RenderSetupTests` before its final `if __name__` block:
 - [ ] **Step 2: Run the new tests and verify RED**
 
 ```bash
-python3 -m unittest tests.creating_liveware_scripts.test_render_scripts -v
+python3 -m unittest tests.create_liveware_scripts.test_render_scripts -v
 ```
 
 Expected: failures because `render_start` is not defined.
@@ -1318,7 +1318,7 @@ In `main()`, replace the block from `setup_text = render_setup(analysis)` throug
 - [ ] **Step 5: Run render tests and verify GREEN**
 
 ```bash
-python3 -m unittest tests.creating_liveware_scripts.test_render_scripts -v
+python3 -m unittest tests.create_liveware_scripts.test_render_scripts -v
 ```
 
 Expected: nine tests pass; `bash -n` validates syntax without running the generated script.
@@ -1326,7 +1326,7 @@ Expected: nine tests pass; `bash -n` validates syntax without running the genera
 - [ ] **Step 6: Commit start rendering**
 
 ```bash
-git add .agents/skills/creating-liveware-scripts tests/creating_liveware_scripts/test_render_scripts.py
+git add .agents/skills/create-liveware-scripts tests/create_liveware_scripts/test_render_scripts.py
 git commit -m "feat: render liveware start adapters"
 ```
 
@@ -1335,8 +1335,8 @@ git commit -m "feat: render liveware start adapters"
 ### Task 5: Implement Static Contract Validation
 
 **Files:**
-- Create: `tests/creating_liveware_scripts/test_validate_scripts.py`
-- Create: `.agents/skills/creating-liveware-scripts/scripts/validate_scripts.py`
+- Create: `tests/create_liveware_scripts/test_validate_scripts.py`
+- Create: `.agents/skills/create-liveware-scripts/scripts/validate_scripts.py`
 
 **Interfaces:**
 - Consumes: a target root or setup/start text
@@ -1389,7 +1389,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from tests.creating_liveware_scripts.helpers import REPO_ROOT, load_skill_script, write_target
+from tests.create_liveware_scripts.helpers import REPO_ROOT, load_skill_script, write_target
 
 
 class ValidateScriptsTests(unittest.TestCase):
@@ -1467,7 +1467,7 @@ if __name__ == "__main__":
 - [ ] **Step 2: Run validator tests and verify RED**
 
 ```bash
-python3 -m unittest tests.creating_liveware_scripts.test_validate_scripts -v
+python3 -m unittest tests.create_liveware_scripts.test_validate_scripts -v
 ```
 
 Expected: import failure because `validate_scripts.py` does not exist.
@@ -1621,7 +1621,7 @@ if __name__ == "__main__":
 - [ ] **Step 4: Run validator tests and verify GREEN**
 
 ```bash
-python3 -m unittest tests.creating_liveware_scripts.test_validate_scripts -v
+python3 -m unittest tests.create_liveware_scripts.test_validate_scripts -v
 ```
 
 Expected: five tests pass. The legacy Office and Tarot scripts are only read; they are not repaired in this task.
@@ -1629,7 +1629,7 @@ Expected: five tests pass. The legacy Office and Tarot scripts are only read; th
 - [ ] **Step 5: Commit the validator**
 
 ```bash
-git add .agents/skills/creating-liveware-scripts/scripts/validate_scripts.py tests/creating_liveware_scripts/test_validate_scripts.py
+git add .agents/skills/create-liveware-scripts/scripts/validate_scripts.py tests/create_liveware_scripts/test_validate_scripts.py
 git commit -m "feat: validate liveware script contracts"
 ```
 
@@ -1638,10 +1638,10 @@ git commit -m "feat: validate liveware script contracts"
 ### Task 6: Write the English Skill Contract and Workflow
 
 **Files:**
-- Modify: `.agents/skills/creating-liveware-scripts/SKILL.md`
-- Modify: `.agents/skills/creating-liveware-scripts/agents/openai.yaml`
-- Create: `.agents/skills/creating-liveware-scripts/references/liveware-script-contract.md`
-- Create: `tests/creating_liveware_scripts/test_skill_content.py`
+- Modify: `.agents/skills/create-liveware-scripts/SKILL.md`
+- Modify: `.agents/skills/create-liveware-scripts/agents/openai.yaml`
+- Create: `.agents/skills/create-liveware-scripts/references/liveware-script-contract.md`
+- Create: `tests/create_liveware_scripts/test_skill_content.py`
 
 **Interfaces:**
 - Consumes: analyzer, renderer, validator, and baseline failure patterns
@@ -1657,7 +1657,7 @@ from __future__ import annotations
 import re
 import unittest
 
-from tests.creating_liveware_scripts.helpers import SKILL_ROOT
+from tests.create_liveware_scripts.helpers import SKILL_ROOT
 
 
 class SkillContentTests(unittest.TestCase):
@@ -1671,7 +1671,7 @@ class SkillContentTests(unittest.TestCase):
 
     def test_skill_metadata_is_trigger_only_and_names_the_fixed_files(self) -> None:
         text = (SKILL_ROOT / "SKILL.md").read_text(encoding="utf-8")
-        self.assertIn("name: creating-liveware-scripts", text)
+        self.assertIn("name: create-liveware-scripts", text)
         self.assertRegex(text, r"description: Use when creating, auditing, or repairing")
         self.assertIn("liveware/scripts/setup.py", text)
         self.assertIn("liveware/scripts/start.sh", text)
@@ -1697,7 +1697,7 @@ if __name__ == "__main__":
 - [ ] **Step 2: Run content tests and verify RED**
 
 ```bash
-python3 -m unittest tests.creating_liveware_scripts.test_skill_content -v
+python3 -m unittest tests.create_liveware_scripts.test_skill_content -v
 ```
 
 Expected: failure because the initialized `SKILL.md` still contains the initializer scaffold text and the contract reference is absent.
@@ -1708,7 +1708,7 @@ Use this exact structure and imperative language:
 
 ```markdown
 ---
-name: creating-liveware-scripts
+name: create-liveware-scripts
 description: Use when creating, auditing, or repairing ClawChat Liveware setup.py and start.sh files for a Hermes skill.
 ---
 
@@ -1827,10 +1827,10 @@ Run:
 
 ```bash
 python3 /Users/nb-colin/.codex/skills/.system/skill-creator/scripts/generate_openai_yaml.py \
-  .agents/skills/creating-liveware-scripts \
+  .agents/skills/create-liveware-scripts \
   --interface 'display_name=Create Liveware Scripts' \
   --interface 'short_description=Generate and audit ClawChat Liveware scripts' \
-  --interface 'default_prompt=Use $creating-liveware-scripts to generate or audit setup.py and start.sh for this Hermes skill.'
+  --interface 'default_prompt=Use $create-liveware-scripts to generate or audit setup.py and start.sh for this Hermes skill.'
 ```
 
 Expected `agents/openai.yaml`:
@@ -1839,14 +1839,14 @@ Expected `agents/openai.yaml`:
 interface:
   display_name: "Create Liveware Scripts"
   short_description: "Generate and audit ClawChat Liveware scripts"
-  default_prompt: "Use $creating-liveware-scripts to generate or audit setup.py and start.sh for this Hermes skill."
+  default_prompt: "Use $create-liveware-scripts to generate or audit setup.py and start.sh for this Hermes skill."
 ```
 
 - [ ] **Step 6: Run content and skill validation and verify GREEN**
 
 ```bash
-python3 -m unittest tests.creating_liveware_scripts.test_skill_content -v
-python3 /Users/nb-colin/.codex/skills/.system/skill-creator/scripts/quick_validate.py .agents/skills/creating-liveware-scripts
+python3 -m unittest tests.create_liveware_scripts.test_skill_content -v
+python3 /Users/nb-colin/.codex/skills/.system/skill-creator/scripts/quick_validate.py .agents/skills/create-liveware-scripts
 ```
 
 Expected: three content tests pass and `quick_validate.py` reports a valid skill.
@@ -1854,7 +1854,7 @@ Expected: three content tests pass and `quick_validate.py` reports a valid skill
 - [ ] **Step 7: Commit the English skill instructions**
 
 ```bash
-git add .agents/skills/creating-liveware-scripts tests/creating_liveware_scripts/test_skill_content.py
+git add .agents/skills/create-liveware-scripts tests/create_liveware_scripts/test_skill_content.py
 git commit -m "feat: document liveware script workflow"
 ```
 
@@ -1863,9 +1863,9 @@ git commit -m "feat: document liveware script workflow"
 ### Task 7: Forward-Test and Close Skill Loopholes
 
 **Files:**
-- Modify: `docs/superpowers/evals/2026-07-13-creating-liveware-scripts.md`
-- Modify when a demonstrated failure requires it: `.agents/skills/creating-liveware-scripts/SKILL.md`
-- Modify when a demonstrated contract gap requires it: `.agents/skills/creating-liveware-scripts/references/liveware-script-contract.md`
+- Modify: `docs/superpowers/evals/2026-07-13-create-liveware-scripts.md`
+- Modify when a demonstrated failure requires it: `.agents/skills/create-liveware-scripts/SKILL.md`
+- Modify when a demonstrated contract gap requires it: `.agents/skills/create-liveware-scripts/references/liveware-script-contract.md`
 - Modify when behavior code is wrong: the matching unit test before the implementation script
 
 **Interfaces:**
@@ -1877,7 +1877,7 @@ git commit -m "feat: document liveware script workflow"
 Use the same fixed prompt, disposable project copies, and scoring rubric as Task 1. Each fresh subagent prompt must begin:
 
 ```text
-Use $creating-liveware-scripts at .agents/skills/creating-liveware-scripts to complete this task.
+Use $create-liveware-scripts at .agents/skills/create-liveware-scripts to complete this task.
 ```
 
 Append the unchanged Task 1 prompt. Run three samples on Tarot and two on Office. Do not pass the design document, expected answer, baseline diagnosis, or prior sample outputs.
@@ -1912,7 +1912,7 @@ Add `Guided Micro-Test Results`, `Full Application Results`, `Observed New Ratio
 - [ ] **Step 5: Commit forward-test evidence and demonstrated refinements**
 
 ```bash
-git add docs/superpowers/evals/2026-07-13-creating-liveware-scripts.md .agents/skills/creating-liveware-scripts tests/creating_liveware_scripts
+git add docs/superpowers/evals/2026-07-13-create-liveware-scripts.md .agents/skills/create-liveware-scripts tests/create_liveware_scripts
 git commit -m "test: forward-test liveware script skill"
 ```
 
@@ -1921,9 +1921,9 @@ git commit -m "test: forward-test liveware script skill"
 ### Task 8: Run the Static Deployment Gate
 
 **Files:**
-- Verify only: `.agents/skills/creating-liveware-scripts/`
-- Verify only: `tests/creating_liveware_scripts/`
-- Verify only: `docs/superpowers/evals/2026-07-13-creating-liveware-scripts.md`
+- Verify only: `.agents/skills/create-liveware-scripts/`
+- Verify only: `tests/create_liveware_scripts/`
+- Verify only: `docs/superpowers/evals/2026-07-13-create-liveware-scripts.md`
 
 **Interfaces:**
 - Consumes: all committed implementation and evaluation artifacts
@@ -1932,7 +1932,7 @@ git commit -m "test: forward-test liveware script skill"
 - [ ] **Step 1: Run the complete unit suite**
 
 ```bash
-python3 -m unittest discover -s tests/creating_liveware_scripts -p 'test_*.py' -v
+python3 -m unittest discover -s tests/create_liveware_scripts -p 'test_*.py' -v
 ```
 
 Expected: all analyzer, renderer, validator, and content tests pass with zero failures and zero errors.
@@ -1940,8 +1940,8 @@ Expected: all analyzer, renderer, validator, and content tests pass with zero fa
 - [ ] **Step 2: Run skill and language validation**
 
 ```bash
-python3 /Users/nb-colin/.codex/skills/.system/skill-creator/scripts/quick_validate.py .agents/skills/creating-liveware-scripts
-rg -n '[\p{Han}]' .agents/skills/creating-liveware-scripts
+python3 /Users/nb-colin/.codex/skills/.system/skill-creator/scripts/quick_validate.py .agents/skills/create-liveware-scripts
+rg -n '[\p{Han}]' .agents/skills/create-liveware-scripts
 ```
 
 Expected: `quick_validate.py` succeeds; `rg` exits `1` with no matches because every skill-owned text file is English.
@@ -1951,17 +1951,17 @@ Expected: `quick_validate.py` succeeds; `rg` exits `1` with no matches because e
 Create a disposable static Hermes skill, analyze it, render the fixed paths, and run static checks:
 
 ```bash
-VERIFY_ROOT="$(mktemp -d /tmp/creating-liveware-scripts-verify.XXXXXX)"
+VERIFY_ROOT="$(mktemp -d /tmp/create-liveware-scripts-verify.XXXXXX)"
 TARGET="$VERIFY_ROOT/static-sample"
 ANALYSIS="$VERIFY_ROOT/analysis.json"
 mkdir -p "$TARGET/liveware/static"
 printf '%s\n' '---' 'name: static-sample' 'description: Static verification target.' '---' >"$TARGET/SKILL.md"
 printf '%s\n' '<!doctype html>' >"$TARGET/liveware/static/index.html"
-python3 .agents/skills/creating-liveware-scripts/scripts/analyze_target.py "$TARGET" > "$ANALYSIS"
-python3 .agents/skills/creating-liveware-scripts/scripts/render_scripts.py "$TARGET" "$ANALYSIS" --apply
+python3 .agents/skills/create-liveware-scripts/scripts/analyze_target.py "$TARGET" > "$ANALYSIS"
+python3 .agents/skills/create-liveware-scripts/scripts/render_scripts.py "$TARGET" "$ANALYSIS" --apply
 python3 -m py_compile "$TARGET/liveware/scripts/setup.py"
 bash -n "$TARGET/liveware/scripts/start.sh"
-python3 .agents/skills/creating-liveware-scripts/scripts/validate_scripts.py "$TARGET" --analysis "$ANALYSIS"
+python3 .agents/skills/create-liveware-scripts/scripts/validate_scripts.py "$TARGET" --analysis "$ANALYSIS"
 ```
 
 Expected: all five commands exit `0`. Do not execute either generated script.
@@ -1972,8 +1972,8 @@ Run the two legacy-text unit tests directly:
 
 ```bash
 python3 -m unittest \
-  tests.creating_liveware_scripts.test_validate_scripts.ValidateScriptsTests.test_legacy_tarot_and_office_fail_with_concise_contract_codes \
-  tests.creating_liveware_scripts.test_validate_scripts.ValidateScriptsTests.test_legacy_diagnostics_ignore_comments_and_unused_python_strings \
+  tests.create_liveware_scripts.test_validate_scripts.ValidateScriptsTests.test_legacy_tarot_and_office_fail_with_concise_contract_codes \
+  tests.create_liveware_scripts.test_validate_scripts.ValidateScriptsTests.test_legacy_diagnostics_ignore_comments_and_unused_python_strings \
   -v
 ```
 

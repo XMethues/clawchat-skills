@@ -1,4 +1,4 @@
-# No-Skill Baseline: Creating Liveware Scripts
+# No-Skill Baseline: Create Liveware Scripts
 
 ## Fixed Prompt
 
@@ -41,7 +41,7 @@ Each control is scored against these nine requirements:
 **Verbatim response:**
 
 ~~~~markdown
-Repaired the disposable skill at `/tmp/creating-liveware-scripts-baseline.r4P5GX/tarot-run-1`.
+Repaired the disposable skill at `/tmp/create-liveware-scripts-baseline.r4P5GX/tarot-run-1`.
 
 Changed-file diff:
 
@@ -76,7 +76,7 @@ Full unified diff is reproducible with:
 ```bash
 git diff --no-index -- \
   /Volumes/SAMSUNG/Projects/clawchat-skills/creative/tarot-arcana/liveware/scripts \
-  /tmp/creating-liveware-scripts-baseline.r4P5GX/tarot-run-1/liveware/scripts
+  /tmp/create-liveware-scripts-baseline.r4P5GX/tarot-run-1/liveware/scripts
 ```
 
 The generic skill validator could not start because its environment lacks `yaml` (`ModuleNotFoundError`). No setup, start, server, login, registration, tunnel, or network operation was executed.
@@ -103,8 +103,8 @@ The generic skill validator could not start because its environment lacks `yaml`
 ~~~~markdown
 Repaired:
 
-- [setup.py](/tmp/creating-liveware-scripts-baseline.r4P5GX/tarot-run-2/liveware/scripts/setup.py)
-- [start.sh](/tmp/creating-liveware-scripts-baseline.r4P5GX/tarot-run-2/liveware/scripts/start.sh)
+- [setup.py](/tmp/create-liveware-scripts-baseline.r4P5GX/tarot-run-2/liveware/scripts/setup.py)
+- [start.sh](/tmp/create-liveware-scripts-baseline.r4P5GX/tarot-run-2/liveware/scripts/start.sh)
 
 Diff summary:
 
@@ -139,7 +139,7 @@ Only those two files differ from the original Tarot directory. Full unified diff
 ```bash
 git diff --no-index -- \
   /Volumes/SAMSUNG/Projects/clawchat-skills/creative/tarot-arcana/liveware/scripts \
-  /tmp/creating-liveware-scripts-baseline.r4P5GX/tarot-run-2/liveware/scripts
+  /tmp/create-liveware-scripts-baseline.r4P5GX/tarot-run-2/liveware/scripts
 ```
 
 Validation evidence:
@@ -179,8 +179,8 @@ Runtime validation was intentionally not performed; neither script nor any netwo
 ~~~~markdown
 Repaired only:
 
-- [setup.py](/tmp/creating-liveware-scripts-baseline.r4P5GX/tarot-run-3/liveware/scripts/setup.py)
-- [start.sh](/tmp/creating-liveware-scripts-baseline.r4P5GX/tarot-run-3/liveware/scripts/start.sh)
+- [setup.py](/tmp/create-liveware-scripts-baseline.r4P5GX/tarot-run-3/liveware/scripts/setup.py)
+- [start.sh](/tmp/create-liveware-scripts-baseline.r4P5GX/tarot-run-3/liveware/scripts/start.sh)
 
 Full unified diff: [tarot-run-3.diff](/tmp/tarot-run-3.diff)
 
@@ -228,8 +228,8 @@ Neither target script nor any network operation was executed. The optional skill
 ~~~~markdown
 Repaired only the two requested scripts:
 
-- [office-liveware-setup.py](/tmp/creating-liveware-scripts-baseline.r4P5GX/office-run-1/scripts/office-liveware-setup.py)
-- [office-liveware-start.sh](/tmp/creating-liveware-scripts-baseline.r4P5GX/office-run-1/scripts/office-liveware-start.sh)
+- [office-liveware-setup.py](/tmp/create-liveware-scripts-baseline.r4P5GX/office-run-1/scripts/office-liveware-setup.py)
+- [office-liveware-start.sh](/tmp/create-liveware-scripts-baseline.r4P5GX/office-run-1/scripts/office-liveware-start.sh)
 
 Diff summary:
 
@@ -282,8 +282,8 @@ Repaired the disposable Office skill.
 
 Changed files:
 
-- [office-liveware-setup.py](/tmp/creating-liveware-scripts-baseline.r4P5GX/office-run-2/scripts/office-liveware-setup.py)
-- [office-liveware-start.sh](/tmp/creating-liveware-scripts-baseline.r4P5GX/office-run-2/scripts/office-liveware-start.sh)
+- [office-liveware-setup.py](/tmp/create-liveware-scripts-baseline.r4P5GX/office-run-2/scripts/office-liveware-setup.py)
+- [office-liveware-start.sh](/tmp/create-liveware-scripts-baseline.r4P5GX/office-run-2/scripts/office-liveware-start.sh)
 
 Full unified diff: [office-run-2.diff](/tmp/office-run-2.diff)
 
@@ -385,7 +385,7 @@ The first Office rerun ended with an empty diff but temporarily wrote and remove
 
 ### 1. Static generation
 
-Target: `/tmp/creating-liveware-scripts-app.JpqRVh/static-sample`
+Target: `/tmp/create-liveware-scripts-app.JpqRVh/static-sample`
 
 | Check | Result |
 | --- | --- |

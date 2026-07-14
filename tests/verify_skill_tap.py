@@ -10,7 +10,12 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-SKILLS = ("clawchat-officecli", "create-hermes-boot-hook", "tarot-arcana")
+SKILLS = (
+    "clawchat-officecli",
+    "create-liveware-scripts",
+    "create-hermes-boot-hook",
+    "tarot-arcana",
+)
 ALLOWED_DIRS = ("references", "templates", "scripts", "assets", "examples")
 REFERENCE_RE = re.compile(
     r"(?:\]\(|`|(?:^|[\s\"']))"
@@ -63,6 +68,7 @@ def main() -> int:
         ROOT / "creative" / "tarot-arcana",
         ROOT / "productivity" / "clawchat-officecli",
         ROOT / "create-hermes-boot-hook",
+        ROOT / "skills" / "creating-liveware-scripts",
     ):
         if legacy.exists():
             errors.append(f"legacy skill directory still exists: {legacy.relative_to(ROOT)}")
@@ -78,7 +84,10 @@ def main() -> int:
         else:
             expected = [
                 {"title": "Productivity", "skills": ["clawchat-officecli"]},
-                {"title": "Automation", "skills": ["create-hermes-boot-hook"]},
+                {
+                    "title": "Development",
+                    "skills": ["create-liveware-scripts", "create-hermes-boot-hook"],
+                },
                 {"title": "Creative", "skills": ["tarot-arcana"]},
             ]
             if metadata.get("$schema") != "https://skills.sh/schemas/skills.sh.schema.json":
@@ -88,10 +97,13 @@ def main() -> int:
 
     readme_requirements = (
         "hermes skills tap add clawling/clawchat-skills",
+        "Development Skills",
         "hermes skills install clawling/clawchat-skills/clawchat-officecli",
+        "hermes skills install clawling/clawchat-skills/create-liveware-scripts",
         "hermes skills install clawling/clawchat-skills/create-hermes-boot-hook",
         "hermes skills install clawling/clawchat-skills/tarot-arcana",
         "skills/clawchat-officecli/",
+        "skills/create-liveware-scripts/",
         "skills/create-hermes-boot-hook/",
         "skills/tarot-arcana/",
     )

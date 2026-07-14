@@ -39,7 +39,7 @@ def load_renderer() -> ModuleType:
     if _RENDERER is None:
         path = Path(__file__).with_name("render_scripts.py")
         spec = importlib.util.spec_from_file_location(
-            "creating_liveware_scripts_renderer_for_validation",
+            "create_liveware_scripts_renderer_for_validation",
             path,
         )
         if spec is None or spec.loader is None:
