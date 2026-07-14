@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import argparse
+import base64
+import binascii
 import json
 import os
 import re
@@ -12,6 +14,12 @@ from typing import cast
 
 SKILL_ROOT = Path(__file__).resolve().parent.parent
 ASSET_ROOT = SKILL_ROOT / "assets"
+ANALYSIS_MARKER_PREFIX = "# LIVEWARE ANALYSIS V1: "
+CREDENTIAL_KEY_RE = re.compile(
+    r"(?:api[_-]?key|auth(?:orization)?|credential|password|private[_-]?key|secret|token)",
+    re.IGNORECASE,
+)
+SKILL_NAME_RE = re.compile(r"^[a-z0-9][a-z0-9-]{0,62}$")
 
 
 def require_ready(analysis: dict[str, object]) -> None:
@@ -19,14 +27,107 @@ def require_ready(analysis: dict[str, object]) -> None:
         raise ValueError("Analysis must be an object.")
     if analysis.get("schema_version") != 1 or analysis.get("status") != "ready":
         raise ValueError("Analysis must use schema version 1 and have status ready.")
-    if analysis.get("issues"):
+    if analysis.get("issues") != []:
         raise ValueError("Analysis contains unresolved issues.")
+    target_root = analysis.get("target_root")
+    if not isinstance(target_root, str) or not target_root:
+        raise ValueError("Analysis target_root must be a non-empty string.")
+    skill_name = analysis.get("skill_name")
+    if isinstance(skill_name, str) and any(
+        ord(character) < 32 or ord(character) == 127 for character in skill_name
+    ):
+        raise ValueError("skill_name must not contain a control character.")
+    if not isinstance(skill_name, str) or SKILL_NAME_RE.fullmatch(skill_name) is None:
+        raise ValueError("Analysis skill_name must be a valid skill identifier.")
+    display_name = analysis.get("display_name")
+    if display_name is not None and not isinstance(display_name, str):
+        raise ValueError("Analysis display_name must be a string when present.")
+
+
+def _reject_credentials(value: object) -> None:
+    if isinstance(value, dict):
+        for key, child in value.items():
+            if isinstance(key, str) and CREDENTIAL_KEY_RE.search(key):
+                raise ValueError("Analysis manifest must not contain credential fields.")
+            _reject_credentials(child)
+    elif isinstance(value, (list, tuple)):
+        for child in value:
+            _reject_credentials(child)
+
+
+def _canonical_analysis_bytes(analysis: dict[str, object]) -> bytes:
+    require_ready(analysis)
+    _reject_credentials(analysis)
+    return json.dumps(
+        analysis,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+        allow_nan=False,
+    ).encode("utf-8")
+
+
+def encode_analysis_manifest(analysis: dict[str, object]) -> str:
+    return base64.urlsafe_b64encode(_canonical_analysis_bytes(analysis)).decode("ascii")
+
+
+def _reject_duplicate_json_keys(pairs: list[tuple[str, object]]) -> dict[str, object]:
+    result: dict[str, object] = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError("Analysis manifest JSON contains duplicate keys.")
+        result[key] = value
+    return result
+
+
+def _reject_non_json_number(value: str) -> object:
+    raise ValueError(f"Analysis manifest contains non-JSON number {value}.")
+
+
+def decode_analysis_manifest(payload: str) -> dict[str, object]:
+    if not isinstance(payload, str) or not payload:
+        raise ValueError("Analysis manifest payload must be non-empty URL-safe Base64.")
+    try:
+        encoded = payload.encode("ascii")
+        raw = base64.b64decode(encoded, altchars=b"-_", validate=True)
+        text = raw.decode("utf-8")
+        decoded = json.loads(
+            text,
+            object_pairs_hook=_reject_duplicate_json_keys,
+            parse_constant=_reject_non_json_number,
+        )
+    except (UnicodeEncodeError, UnicodeDecodeError, binascii.Error, json.JSONDecodeError) as exc:
+        raise ValueError("Analysis manifest payload is malformed.") from exc
+    if not isinstance(decoded, dict):
+        raise ValueError("Analysis manifest JSON must be an object.")
+    require_ready(decoded)
+    _reject_credentials(decoded)
+    if encode_analysis_manifest(decoded) != payload:
+        raise ValueError("Analysis manifest payload is not canonical.")
+    return decoded
+
+
+def extract_analysis_manifest(text: str) -> dict[str, object]:
+    if not isinstance(text, str):
+        raise ValueError("Script must be text.")
+    payloads: list[str] = []
+    for line in text.splitlines():
+        if line.startswith(ANALYSIS_MARKER_PREFIX):
+            payloads.append(line[len(ANALYSIS_MARKER_PREFIX):])
+    if len(payloads) != 1:
+        raise ValueError("Script must contain exactly one Liveware analysis manifest marker.")
+    return decode_analysis_manifest(payloads[0])
+
+
+def analysis_manifest_line(analysis: dict[str, object]) -> str:
+    return ANALYSIS_MARKER_PREFIX + encode_analysis_manifest(analysis)
 
 
 def render_setup(analysis: dict[str, object]) -> str:
     require_ready(analysis)
     template = (ASSET_ROOT / "setup.py.tmpl").read_text(encoding="utf-8")
     replacements = {
+        "@@ANALYSIS_MANIFEST@@": analysis_manifest_line(analysis),
         "@@SKILL_NAME@@": json.dumps(analysis["skill_name"], ensure_ascii=False),
         "@@DISPLAY_NAME@@": json.dumps(analysis.get("display_name") or analysis["skill_name"], ensure_ascii=False),
     }
@@ -100,7 +201,6 @@ END_ADAPTER = "# END TARGET SERVER ADAPTER"
 BEGIN_BINDING = "# BEGIN LIVEWARE BINDING"
 END_BINDING = "# END LIVEWARE BINDING"
 MARKERS = (BEGIN_ADAPTER, END_ADAPTER, BEGIN_BINDING, END_BINDING)
-STANDARD_STATE_FILE_LINE = 'STATE_FILE="${HOME}/.clawling/apps/${SKILL_NAME}.json"'
 REQUIRED_COMMAND_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._+-]*$")
 
 
@@ -228,15 +328,6 @@ def parse_marker_spans(text: str) -> dict[str, tuple[int, int]]:
     return spans
 
 
-def validate_scaffold_identity(text: str, skill_name: str) -> None:
-    expected_skill_line = f"SKILL_NAME={shlex.quote(skill_name)}"
-    lines = text.splitlines()
-    skill_lines = [line for line in lines if line.lstrip(" \t").startswith("SKILL_NAME=")]
-    state_lines = [line for line in lines if line.lstrip(" \t").startswith("STATE_FILE=")]
-    if skill_lines != [expected_skill_line] or state_lines != [STANDARD_STATE_FILE_LINE]:
-        raise ValueError("Existing start.sh scaffold identity is invalid or does not match current analysis.")
-
-
 def extract_block(text: str, begin: str, end: str) -> str:
     if begin not in MARKERS or end not in MARKERS:
         raise ValueError("Unknown start.sh marker requested.")
@@ -341,24 +432,16 @@ def render_binding(analysis: dict[str, object]) -> str:
     raise ValueError("User-confirmed adapter kind is not renderable.")
 
 
-def render_start(analysis: dict[str, object], existing: str | None = None) -> str:
-    require_ready(analysis)
+def _render_fresh_start(analysis: dict[str, object]) -> str:
     skill_name = require_shell_text(analysis.get("skill_name"), "skill_name")
     adapter = validate_adapter(analysis)
     generated_adapter = "# Static content requires no server process."
     if adapter["kind"] in {"managed-command", "existing-launcher", "external"}:
         generated_adapter = _render_dynamic_adapter(adapter)
     binding = render_binding(analysis)
-    if existing is not None:
-        spans = parse_marker_spans(existing)
-        validate_scaffold_identity(existing, skill_name)
-        existing_adapter = existing[spans[BEGIN_ADAPTER][1]:spans[END_ADAPTER][0]]
-        if existing_adapter != generated_adapter + "\n":
-            raise ValueError("Existing start.sh target server adapter does not match current analysis.")
-        binding_block = binding + "\nprintf 'Liveware ready: %s\\n' \"$PUBLIC_URL\"\n"
-        return existing[:spans[BEGIN_BINDING][1]] + binding_block + existing[spans[END_BINDING][0]:]
     template = (ASSET_ROOT / "start.sh.tmpl").read_text(encoding="utf-8")
     replacements = {
+        "@@ANALYSIS_MANIFEST@@": analysis_manifest_line(analysis),
         "@@SKILL_NAME@@": shlex.quote(skill_name),
         "@@TARGET_SERVER_ADAPTER@@": generated_adapter,
         "@@LIVEWARE_BINDING@@": binding,
@@ -368,6 +451,37 @@ def render_start(analysis: dict[str, object], existing: str | None = None) -> st
     if "@@" in template:
         raise ValueError("Start template contains unresolved markers.")
     return template
+
+
+def render_start(analysis: dict[str, object], existing: str | None = None) -> str:
+    require_ready(analysis)
+    fresh = _render_fresh_start(analysis)
+    if existing is None:
+        return fresh
+
+    embedded = extract_analysis_manifest(existing)
+    if embedded != analysis:
+        raise ValueError("Existing start.sh analysis manifest does not match current analysis.")
+    existing_spans = parse_marker_spans(existing)
+    fresh_spans = parse_marker_spans(fresh)
+    existing_prefix = existing[:existing_spans[BEGIN_BINDING][1]]
+    existing_suffix = existing[existing_spans[END_BINDING][0]:]
+    fresh_prefix = fresh[:fresh_spans[BEGIN_BINDING][1]]
+    fresh_suffix = fresh[fresh_spans[END_BINDING][0]:]
+    if existing_prefix != fresh_prefix or existing_suffix != fresh_suffix:
+        raise ValueError("Existing start.sh differs from the canonical scaffold outside binding content.")
+    fresh_binding = fresh[fresh_spans[BEGIN_BINDING][1]:fresh_spans[END_BINDING][0]]
+    return existing_prefix + fresh_binding + existing_suffix
+
+
+def validate_existing_manifest_pair(setup: str, start: str, analysis: dict[str, object]) -> None:
+    try:
+        setup_manifest = extract_analysis_manifest(setup)
+        start_manifest = extract_analysis_manifest(start)
+    except ValueError as exc:
+        raise ValueError("Existing setup/start manifest pair is missing or invalid.") from exc
+    if setup_manifest != start_manifest or setup_manifest != analysis:
+        raise ValueError("Existing setup/start manifest pair does not match current analysis.")
 
 
 def main() -> int:
@@ -381,6 +495,14 @@ def main() -> int:
     setup_path, start_path = validate_script_paths(target)
     setup_text = render_setup(analysis)
     existing = start_path.read_text(encoding="utf-8") if start_path.is_file() else None
+    if existing is not None:
+        if not setup_path.is_file():
+            raise ValueError("Existing setup/start manifest pair is incomplete.")
+        validate_existing_manifest_pair(
+            setup_path.read_text(encoding="utf-8"),
+            existing,
+            analysis,
+        )
     start_text = render_start(analysis, existing=existing)
     if not args.apply:
         print(json.dumps({"setup.py": setup_text, "start.sh": start_text}, ensure_ascii=False, indent=2))

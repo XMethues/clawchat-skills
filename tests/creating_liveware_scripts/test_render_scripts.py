@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import copy
 import json
 import py_compile
@@ -96,6 +97,82 @@ class RenderSetupTests(unittest.TestCase):
         reordered = dict(reversed(list(READY.items())))
         self.assertEqual(self.module.render_setup(READY), self.module.render_setup(reordered))
 
+    def test_analysis_manifest_is_canonical_unicode_and_embedded_once(self) -> None:
+        analysis = copy.deepcopy(READY)
+        analysis["display_name"] = "星月 🌙"
+
+        payload = self.module.encode_analysis_manifest(analysis)
+        expected = json.dumps(
+            analysis,
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("utf-8")
+        self.assertEqual(base64.urlsafe_b64decode(payload), expected)
+        self.assertEqual(self.module.decode_analysis_manifest(payload), analysis)
+
+        marker = f"# LIVEWARE ANALYSIS V1: {payload}"
+        setup = self.module.render_setup(analysis)
+        start = self.module.render_start(analysis)
+        self.assertEqual(setup.count(marker), 1)
+        self.assertEqual(start.count(marker), 1)
+        self.assertEqual(self.module.extract_analysis_manifest(setup), analysis)
+        self.assertEqual(self.module.extract_analysis_manifest(start), analysis)
+
+    def test_manifest_decoder_rejects_every_corrupt_contract_class(self) -> None:
+        def encoded(value: object, *, canonical: bool = True) -> str:
+            if canonical:
+                raw = json.dumps(
+                    value,
+                    ensure_ascii=False,
+                    sort_keys=True,
+                    separators=(",", ":"),
+                ).encode("utf-8")
+            else:
+                raw = json.dumps(value, ensure_ascii=False).encode("utf-8")
+            return base64.urlsafe_b64encode(raw).decode("ascii")
+
+        duplicate_key_json = json.dumps(
+            READY,
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        ).replace('"schema_version":1', '"schema_version":1,"schema_version":1')
+        cases = {
+            "malformed-base64": "%%%",
+            "invalid-utf8": base64.urlsafe_b64encode(b"\xff").decode("ascii"),
+            "non-object": encoded([READY]),
+            "non-v1": encoded({**READY, "schema_version": 2}),
+            "non-ready": encoded({**READY, "status": "blocked"}),
+            "issues": encoded({**READY, "issues": [{"code": "blocked"}]}),
+            "noncanonical": encoded(READY, canonical=False),
+            "non-json-number": encoded({**READY, "bad": float("nan")}),
+            "duplicate-json-key": base64.urlsafe_b64encode(
+                duplicate_key_json.encode("utf-8")
+            ).decode("ascii"),
+        }
+        for name, payload in cases.items():
+            with self.subTest(name=name):
+                with self.assertRaises(ValueError):
+                    self.module.decode_analysis_manifest(payload)
+
+        marker = f"# LIVEWARE ANALYSIS V1: {encoded(READY)}"
+        with self.assertRaisesRegex(ValueError, "exactly one"):
+            self.module.extract_analysis_manifest("plain text\n")
+        with self.assertRaisesRegex(ValueError, "exactly one"):
+            self.module.extract_analysis_manifest(f"{marker}\n{marker}\n")
+
+    def test_manifest_encoder_rejects_direct_credentials(self) -> None:
+        for key in ("token", "accessToken", "password", "clientSecret", "api_key", "credential"):
+            with self.subTest(key=key):
+                with self.assertRaisesRegex(ValueError, "credential"):
+                    self.module.encode_analysis_manifest({**READY, key: "do-not-embed"})
+
+        nested = copy.deepcopy(READY)
+        nested["evidence"] = ({"clientSecret": "do-not-embed"},)
+        with self.assertRaisesRegex(ValueError, "credential"):
+            self.module.encode_analysis_manifest(nested)
+
     def test_setup_rejects_non_ready_or_unresolved_analysis(self) -> None:
         cases = (
             ({**READY, "status": "blocked"}, "status ready"),
@@ -105,6 +182,22 @@ class RenderSetupTests(unittest.TestCase):
             with self.subTest(message=message):
                 with self.assertRaisesRegex(ValueError, message):
                     self.module.render_setup(analysis)
+
+    def test_manifest_rendering_rejects_unsafe_or_malformed_identity_fields(self) -> None:
+        cases = {
+            "empty-skill": {**READY, "skill_name": ""},
+            "escaping-skill": {**READY, "skill_name": "../../outside"},
+            "uppercase-skill": {**READY, "skill_name": "Sample"},
+            "non-string-display": {**READY, "display_name": 17},
+            "empty-target": {**READY, "target_root": ""},
+            "non-string-target": {**READY, "target_root": 17},
+        }
+        for name, analysis in cases.items():
+            with self.subTest(name=name):
+                with self.assertRaises(ValueError):
+                    self.module.render_setup(analysis)
+                with self.assertRaises(ValueError):
+                    self.module.render_start(analysis)
 
     def test_preview_prints_both_scripts_without_writing_them(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -163,6 +256,52 @@ class RenderSetupTests(unittest.TestCase):
             self.assertNotEqual(setup.stat().st_ino, stale_inode)
             self.assertEqual(sorted(path.name for path in scripts.iterdir()), ["setup.py", "start.sh"])
 
+    def test_cli_repair_requires_existing_setup_and_start_manifest_pair(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            target = root / "target"
+            scripts = target / "liveware" / "scripts"
+            scripts.mkdir(parents=True)
+            analysis = {**copy.deepcopy(READY), "target_root": str(target.resolve())}
+            analysis_path = root / "analysis.json"
+            analysis_path.write_text(json.dumps(analysis, ensure_ascii=False), encoding="utf-8")
+            (scripts / "start.sh").write_text(self.module.render_start(analysis), encoding="utf-8")
+
+            missing_setup = subprocess.run(
+                [sys.executable, self.module.__file__, str(target), str(analysis_path), "--apply"],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            self.assertNotEqual(missing_setup.returncode, 0)
+            self.assertIn("setup/start manifest pair", missing_setup.stderr)
+
+            other = copy.deepcopy(analysis)
+            other["display_name"] = "Other"
+            (scripts / "setup.py").write_text(self.module.render_setup(other), encoding="utf-8")
+            mismatched_setup = subprocess.run(
+                [sys.executable, self.module.__file__, str(target), str(analysis_path), "--apply"],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            self.assertNotEqual(mismatched_setup.returncode, 0)
+            self.assertIn("setup/start manifest pair", mismatched_setup.stderr)
+
+            canonical_setup = self.module.render_setup(analysis)
+            (scripts / "setup.py").write_text(
+                canonical_setup.replace('SKILL_NAME = "sample-skill"', 'SKILL_NAME = "tampered"', 1),
+                encoding="utf-8",
+            )
+            rebuilt_setup = subprocess.run(
+                [sys.executable, self.module.__file__, str(target), str(analysis_path), "--apply"],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            self.assertEqual(rebuilt_setup.returncode, 0, rebuilt_setup.stderr)
+            self.assertEqual((scripts / "setup.py").read_text(encoding="utf-8"), canonical_setup)
+
     def test_dynamic_start_preserves_command_and_waits_before_loopback_bind(self) -> None:
         text = self.module.render_start(READY)
         self.assertIn('PORT="${PORT:-5080}"', text)
@@ -193,30 +332,49 @@ class RenderSetupTests(unittest.TestCase):
         self.assertIn('tunnel bind-static "$APP_ID" "$SKILL_ROOT/liveware/static"', text)
         self.assertNotIn("SERVER_COMMAND=", text)
 
-    def test_repair_replaces_only_the_standard_binding_block(self) -> None:
+    def test_repair_replaces_only_binding_content_and_returns_canonical_script(self) -> None:
         existing = self.module.render_start(READY)
-        existing = "# preserve-prefix\r\n" + existing + "# preserve-suffix\n"
-        existing = existing.replace(
-            self.module.BEGIN_BINDING,
-            "echo preserve-before-binding\n" + self.module.BEGIN_BINDING,
-        )
         existing = existing.replace(
             '"$LIVEWARE_BIN" tunnel bind "$APP_ID" "http://127.0.0.1:${PORT}"',
             "echo obsolete-binding",
         )
         text = self.module.render_start(READY, existing=existing)
-        expected = existing.replace(
-            "echo obsolete-binding",
-            '"$LIVEWARE_BIN" tunnel bind "$APP_ID" "http://127.0.0.1:${PORT}"',
-        )
-        self.assertEqual(text, expected)
+        self.assertEqual(text, self.module.render_start(READY))
+
+    def test_repair_rejects_every_byte_changed_outside_binding_content(self) -> None:
+        base = self.module.render_start(READY)
+        cases = {
+            "prefix-comment": "# injected\n" + base,
+            "suffix-comment": base + "# injected\n",
+            "pre-binding-command": base.replace(
+                self.module.BEGIN_BINDING,
+                "echo injected\n" + self.module.BEGIN_BINDING,
+                1,
+            ),
+            "adapter-command": base.replace(
+                "SERVER_COMMAND=(python3 server.py --port \"${PORT}\")",
+                "SERVER_COMMAND=(python3 other.py --port \"${PORT}\")",
+                1,
+            ),
+        }
+        for name, existing in cases.items():
+            with self.subTest(name=name):
+                with self.assertRaisesRegex(ValueError, "canonical scaffold"):
+                    self.module.render_start(READY, existing=existing)
+
+    def test_repair_rejects_manifest_that_differs_from_current_analysis(self) -> None:
+        other = copy.deepcopy(READY)
+        other["display_name"] = "Other"
+        existing = self.module.render_start(other)
+        with self.assertRaisesRegex(ValueError, "manifest.*current analysis"):
+            self.module.render_start(READY, existing=existing)
 
     def test_repair_rejects_an_adapter_that_differs_from_current_analysis(self) -> None:
         existing = self.module.render_start(READY).replace(
             "SERVER_COMMAND=(python3 server.py --port \"${PORT}\")",
             "SERVER_COMMAND=(node stale-server.js)",
         )
-        with self.assertRaisesRegex(ValueError, "does not match current analysis"):
+        with self.assertRaisesRegex(ValueError, "canonical scaffold"):
             self.module.render_start(READY, existing=existing)
 
     def test_repair_rejects_stale_missing_or_duplicate_scaffold_identity(self) -> None:
@@ -237,7 +395,7 @@ class RenderSetupTests(unittest.TestCase):
         }
         for name, existing in cases.items():
             with self.subTest(name=name):
-                with self.assertRaisesRegex(ValueError, "scaffold identity"):
+                with self.assertRaisesRegex(ValueError, "canonical scaffold"):
                     self.module.render_start(READY, existing=existing)
 
     def test_repair_rejects_static_and_external_scaffold_identity_changes(self) -> None:
@@ -269,7 +427,7 @@ class RenderSetupTests(unittest.TestCase):
                     "SKILL_NAME=other-skill",
                     1,
                 )
-                with self.assertRaisesRegex(ValueError, "scaffold identity"):
+                with self.assertRaisesRegex(ValueError, "canonical scaffold"):
                     self.module.render_start(analysis, existing=existing)
 
     def test_existing_launcher_is_invoked_without_replacing_its_lifecycle(self) -> None:

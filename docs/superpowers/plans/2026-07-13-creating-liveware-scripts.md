@@ -21,6 +21,7 @@
 - Treat ambiguous entrypoints, ports, lifecycle ownership, readiness checks, or logging ownership as blocking questions; never guess.
 - Without a real user-provided Hermes/ClawChat/Liveware environment, run static checks only. Do not run generated setup/start scripts and do not create fake plugins, CLIs, servers, or successful runtime simulations.
 - Use `name` for `liveware app create`, state filenames, and identity. Use `display_name`, falling back to `name`, only for ClawChat registration.
+- Embed the same deterministic URL-safe Base64 schema-version-1 analysis manifest comment in setup.py and start.sh. The manifest contains no credentials and is the canonical static-validation trust root.
 
 ## File Map
 
@@ -531,6 +532,12 @@ git commit -m "feat: analyze liveware script targets"
 - Consumes: a `status == "ready"` analysis mapping
 - Produces: `render_setup(analysis: dict[str, object]) -> str` and atomic mode-`0755` output at `liveware/scripts/setup.py`
 
+**Human-approved canonical-manifest amendment:**
+
+- Canonicalize the full ready analysis as UTF-8 JSON with sorted keys and compact separators, then encode it with URL-safe Base64.
+- Add exactly one `# LIVEWARE ANALYSIS V1: <payload>` comment to generated setup.py without executing or trusting target code.
+- Expose focused encode/decode/extract helpers for start rendering and validation. Reject malformed, duplicate, non-object, non-version-1, non-ready, or issue-bearing manifests.
+
 - [ ] **Step 1: Write failing setup-render tests**
 
 Create the first part of `test_render_scripts.py`:
@@ -925,6 +932,12 @@ git commit -m "feat: render idempotent liveware setup"
 - Replace `assert`-based public input checks with deterministic `ValueError` validation.
 - Add RED-first regression tests for symlink containment, missing/non-string `target_root`, malformed/duplicate/reordered/nested markers, outside-block preservation, stale adapter rejection, adversarial shell values, readiness-before-bind ordering, and `bash -n` for all four adapter kinds.
 - Static tests may render and parse scripts but must not execute generated setup/start scripts or simulate a Liveware runtime.
+
+**Human-approved canonical-manifest repair amendment:**
+
+- Add exactly one `# LIVEWARE ANALYSIS V1: <payload>` comment to fresh start.sh output, identical to setup.py.
+- For repair, require the existing manifest to decode to the exact current analysis and require every byte outside the Liveware binding content to equal the fresh canonical scaffold. Any extra or changed scaffold content is unapproved and must stop repair.
+- Splice only the binding content after the canonical-scaffold comparison. The preserved outside bytes are therefore canonical and unchanged.
 
 - [ ] **Step 1: Add failing dynamic, static, and repair tests**
 
@@ -1334,6 +1347,15 @@ git commit -m "feat: render liveware start adapters"
 - Catch unreadable, malformed, or non-object analysis input and return deterministic JSON findings with exit status 1; do not leak tracebacks or argparse-only text for these contract failures.
 - Add RED-first behavioral tests for every finding family, comments/unused-string bypasses, alternate quoting/argv forms, first-app indexing, setup invocation plus guidance, kill variants/owned-child distinction, marker/binding bypasses, stable state identity, unresolved/mismatched analysis, all adapter fields, Bash syntax, and CLI JSON/exit behavior.
 - Keep validation static and read-only. Never execute generated setup/start scripts or create fake runtime success.
+
+**Human-approved canonical-manifest validation amendment (supersedes a general-purpose Python/Bash interpreter as the zero-finding gate):**
+
+- Extract exactly one manifest from setup.py and start.sh, decode both, and require the canonical analysis objects to be equal.
+- Re-render setup.py and start.sh from the embedded analysis. Require setup.py to equal fresh canonical output and start.sh to equal fresh canonical output; noncanonical scaffold or binding content is a finding.
+- When an explicit analysis is supplied, require it to equal the embedded canonical analysis before comparing renderer output.
+- Missing, duplicate, malformed, non-object, non-ready, issue-bearing, mismatched, or tampered manifests/scripts must produce deterministic `LW018`/`LW019` findings and can never return zero findings.
+- Keep concise legacy diagnostics for Tarot/Office and obvious unsafe patterns, but do not attempt to prove arbitrary Python/Bash safety with a hand-built interpreter. A legacy script without a valid canonical manifest fails the contract gate even if no specific heuristic fires.
+- Add RED-first tests for Unicode round trips, all adapter kinds, manifest duplication/corruption/mismatch, fake manifests on unsafe bodies, setup/start tampering, explicit-analysis mismatch, canonical repair rejection, legacy diagnostics, and JSON CLI behavior.
 
 - [ ] **Step 1: Write failing validator tests**
 
