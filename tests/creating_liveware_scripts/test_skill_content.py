@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import re
 import stat
 import subprocess
@@ -8,6 +9,7 @@ import unittest
 from pathlib import Path
 
 from tests.creating_liveware_scripts.helpers import (
+    REPO_ROOT,
     SKILL_ROOT,
     load_skill_script,
     write_target,
@@ -32,6 +34,42 @@ class SkillContentTests(unittest.TestCase):
                 if re.search(r"[\u3400-\u9fff]", path.read_text(encoding="utf-8")):
                     offenders.append(str(path.relative_to(SKILL_ROOT)))
         self.assertEqual(offenders, [])
+
+    def test_top_level_skill_mirror_is_exact_but_not_tap_registered(self) -> None:
+        mirror = REPO_ROOT / "skills" / "creating-liveware-scripts"
+        source_files = {
+            path.relative_to(SKILL_ROOT): path
+            for path in SKILL_ROOT.rglob("*")
+            if path.is_file() and "__pycache__" not in path.parts
+        }
+        mirror_files = {
+            path.relative_to(mirror): path
+            for path in mirror.rglob("*")
+            if path.is_file() and "__pycache__" not in path.parts
+        }
+        self.assertEqual(set(mirror_files), set(source_files))
+        for relative, source in source_files.items():
+            with self.subTest(path=str(relative)):
+                mirrored = mirror_files[relative]
+                self.assertEqual(mirrored.read_bytes(), source.read_bytes())
+                self.assertEqual(
+                    stat.S_IMODE(mirrored.stat().st_mode),
+                    stat.S_IMODE(source.stat().st_mode),
+                )
+
+        tap = json.loads((REPO_ROOT / "skills.sh.json").read_text(encoding="utf-8"))
+        registered = {
+            skill
+            for grouping in tap.get("groupings", [])
+            for skill in grouping.get("skills", [])
+        }
+        self.assertNotIn("creating-liveware-scripts", registered)
+        install_id = "clawling/clawchat-skills/creating-liveware-scripts"
+        for readme in ("README.md", "README_zh.md"):
+            self.assertNotIn(
+                install_id,
+                (REPO_ROOT / readme).read_text(encoding="utf-8"),
+            )
 
     def test_frontmatter_is_trigger_only_and_names_fixed_files(self) -> None:
         frontmatter = self.skill_text.split("---", 2)[1].strip().splitlines()
