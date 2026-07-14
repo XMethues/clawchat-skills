@@ -1964,7 +1964,7 @@ bash -n "$TARGET/liveware/scripts/start.sh"
 python3 .agents/skills/creating-liveware-scripts/scripts/validate_scripts.py "$TARGET" --analysis "$ANALYSIS"
 ```
 
-Expected: all three commands exit `0`. Do not execute either generated script.
+Expected: all five commands exit `0`. Do not execute either generated script.
 
 - [ ] **Step 4: Confirm legacy regressions remain detectable**
 
@@ -1972,8 +1972,8 @@ Run the two legacy-text unit tests directly:
 
 ```bash
 python3 -m unittest \
-  tests.creating_liveware_scripts.test_validate_scripts.ValidateScriptsTests.test_detects_tarot_state_arguments_and_unknown_process_kill \
-  tests.creating_liveware_scripts.test_validate_scripts.ValidateScriptsTests.test_detects_office_legacy_state_and_first_app_fallback \
+  tests.creating_liveware_scripts.test_validate_scripts.ValidateScriptsTests.test_legacy_tarot_and_office_fail_with_concise_contract_codes \
+  tests.creating_liveware_scripts.test_validate_scripts.ValidateScriptsTests.test_legacy_diagnostics_ignore_comments_and_unused_python_strings \
   -v
 ```
 
