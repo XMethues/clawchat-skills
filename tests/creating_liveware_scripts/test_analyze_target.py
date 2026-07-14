@@ -23,6 +23,8 @@ class AnalyzeTargetTests(unittest.TestCase):
             )
             result = self.module.analyze_target(target, which=lambda command: f"/bin/{command}")
         self.assertEqual(result["status"], "ready")
+        self.assertEqual(result["target_root"], str(target.resolve()))
+        self.assertFalse(result["target_root"].startswith("//"))
         self.assertEqual(result["skill_name"], "sample-skill")
         self.assertEqual(result["display_name"], "塔罗入口")
         self.assertEqual(result["adapter"]["kind"], "managed-command")

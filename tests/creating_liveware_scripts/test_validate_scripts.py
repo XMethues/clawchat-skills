@@ -316,6 +316,33 @@ test -f "$STATE_FILE"
             {(item.code, item.path, item.message) for item in findings},
         )
 
+    def test_double_slash_target_root_never_passes_with_or_without_explicit_analysis(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            target = write_target(Path(tmp))
+            analysis = self.analysis(target)
+            setup, start = self.generated(analysis)
+            invalid = copy.deepcopy(analysis)
+            invalid["target_root"] = "//" + str(target.resolve()).lstrip("/")
+
+            self.write_scripts(target, setup, start)
+            explicit = self.validator.validate_target(target, analysis=invalid)
+
+            raw = json.dumps(
+                invalid,
+                ensure_ascii=False,
+                sort_keys=True,
+                separators=(",", ":"),
+            ).encode("utf-8")
+            invalid_payload = base64.urlsafe_b64encode(raw).decode("ascii")
+            valid_payload = self.renderer.encode_analysis_manifest(analysis)
+            invalid_setup = setup.replace(valid_payload, invalid_payload, 1)
+            invalid_start = start.replace(valid_payload, invalid_payload, 1)
+            self.write_scripts(target, invalid_setup, invalid_start)
+            embedded = self.validator.validate_target(target)
+
+        self.assertIn("LW018", self.codes(explicit))
+        self.assertTrue({"LW018", "LW019"} <= self.codes(embedded))
+
     def test_validator_rejects_symlinked_parents_and_escaping_outputs_before_subprocess(self) -> None:
         for kind in ("liveware-parent", "scripts-parent", "setup-output", "start-output"):
             for explicit in (False, True):
@@ -463,6 +490,26 @@ test -f "$STATE_FILE"
         start += "\npython3 liveware/scripts/setup.py\n"
         codes = self.codes(self.validator.validate_texts(setup, start))
         self.assertTrue({"LW008", "LW011", "LW015", "LW018", "LW019"} <= codes)
+
+    def test_legacy_diagnostics_ignore_comments_and_unused_python_strings(self) -> None:
+        setup = '''#!/usr/bin/env python3
+# os.environ.get("API_TOKEN")
+# subprocess.run(["pip", "install", "package"])
+"""Documentation: os.environ.get("PASSWORD"); npm install package."""
+VALUE = "subprocess.run(['liveware', 'app', 'delete', 'other'])"
+'''
+        start = '''#!/usr/bin/env bash
+# kill "$EXISTING_PID"
+# pkill server
+# npm install package
+# printenv API_TOKEN
+printf '%s\\n' 'killall server; pip install package; ${API_TOKEN}'
+'''
+
+        findings = self.validator.validate_texts(setup, start)
+
+        self.assertTrue({"LW018", "LW019"} <= self.codes(findings))
+        self.assertTrue({"LW010", "LW011", "LW015"}.isdisjoint(self.codes(findings)))
 
     def test_cli_json_exit_status_for_success_corruption_and_invalid_analysis(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

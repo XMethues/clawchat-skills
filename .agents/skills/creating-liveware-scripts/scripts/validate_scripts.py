@@ -58,6 +58,49 @@ def _validate_python_syntax(setup: str, findings: list[Finding]) -> None:
         add(findings, "LW006", SETUP_PATH, f"Python syntax error: {exc.msg}")
 
 
+def _python_name(node: ast.AST) -> str | None:
+    if isinstance(node, ast.Name):
+        return node.id
+    if isinstance(node, ast.Attribute):
+        parent = _python_name(node.value)
+        return f"{parent}.{node.attr}" if parent else None
+    return None
+
+
+def _setup_call_text(setup: str) -> str:
+    try:
+        tree = ast.parse(setup)
+    except SyntaxError:
+        return ""
+    relevant = {
+        "getenv",
+        "os.getenv",
+        "os.environ.get",
+        "os.system",
+        "run_liveware",
+        "subprocess.call",
+        "subprocess.check_call",
+        "subprocess.check_output",
+        "subprocess.Popen",
+        "subprocess.run",
+    }
+    lines: list[str] = []
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        name = _python_name(node.func)
+        if name not in relevant:
+            continue
+        source = ast.get_source_segment(setup, node)
+        literals = [
+            child.value
+            for child in ast.walk(node)
+            if isinstance(child, ast.Constant) and isinstance(child.value, str)
+        ]
+        lines.append(" ".join(part for part in (name, *literals, source or "") if part))
+    return "\n".join(lines)
+
+
 def _setup_diagnostics(setup: str, findings: list[Finding]) -> None:
     standard_root = 'Path.home() / ".clawling" / "apps"' in setup
     standard_file = 'STATE_ROOT / f"{SKILL_NAME}.json"' in setup
@@ -85,16 +128,16 @@ def _executable_shell_lines(start: str) -> list[str]:
 def _start_diagnostics(start: str, findings: list[Finding]) -> None:
     standard_assignment = 'STATE_FILE="${HOME}/.clawling/apps/${SKILL_NAME}.json"'
     state_references = start.count("STATE_FILE")
+    executable = "\n".join(_executable_shell_lines(start))
     if start.count(standard_assignment) != 1 or state_references < 2:
         add(findings, "LW003", START_PATH, "Start does not read the standard state file.")
 
-    executable = "\n".join(_executable_shell_lines(start))
     if re.search(r"(?:^|\n)(?:python3?|bash|sh)\b[^\n]*\bsetup\.py\b", executable):
         add(findings, "LW008", START_PATH, "Start invokes setup instead of requiring existing state.")
 
     unsafe_kill = re.search(
         r"(?:^|[;&|\s])(?:pkill|killall)\b|\bkill\s+(?:-[A-Z0-9]+\s+)?\"?\$\{?EXISTING_PID|\bos\.kill(?:pg)?\s*\(",
-        start,
+        executable,
         re.IGNORECASE,
     )
     if unsafe_kill:
@@ -108,13 +151,13 @@ def _start_diagnostics(start: str, findings: list[Finding]) -> None:
 
 
 def _obvious_cross_script_diagnostics(setup: str, start: str, findings: list[Finding]) -> None:
-    combined = setup + "\n" + start
+    combined = _setup_call_text(setup) + "\n" + "\n".join(_executable_shell_lines(start))
     forbidden = re.search(
         r"\b(?:pip3?|npm|pnpm|yarn)\s+(?:install|add)\b"
         r"|\bpython3?\s+-m\s+pip\s+install\b"
         r"|[\"'](?:pip3?|npm|pnpm|yarn)[\"']\s*,\s*[\"'](?:install|add)[\"']"
         r"|\b(?:curl|wget)\b[^\n|]*\|\s*(?:ba)?sh\b"
-        r"|\bliveware\b[^\n]*(?:\bapp\s+(?:delete|remove)\b)",
+        r"|\b(?:liveware|run_liveware|subprocess\.[A-Za-z_]+)\b[^\n]*\bapp\b[^\n]*\b(?:delete|remove)\b",
         combined,
         re.IGNORECASE,
     )
@@ -127,7 +170,9 @@ def _obvious_cross_script_diagnostics(setup: str, start: str, findings: list[Fin
         )
 
     credential = re.search(
-        r"(?:os\.environ(?:\.get)?\s*\(|getenv\s*\(|printenv\s+|\$\{?)"
+        r"(?:os\.environ\.get|os\.getenv|getenv)(?:\s*\(|\s+)"
+        r"[\"']?(?:[A-Z0-9_]*(?:TOKEN|PASSWORD|PASSWD|SECRET|CREDENTIAL|API_KEY)[A-Z0-9_]*)"
+        r"|(?:printenv\s+|\$\{?)"
         r"[\"']?(?:[A-Z0-9_]*(?:TOKEN|PASSWORD|PASSWD|SECRET|CREDENTIAL|API_KEY)[A-Z0-9_]*)",
         combined,
         re.IGNORECASE,

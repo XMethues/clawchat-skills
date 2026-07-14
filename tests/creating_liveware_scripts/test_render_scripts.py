@@ -41,6 +41,7 @@ class RenderSetupTests(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.module = load_skill_script("render_scripts")
         cls.analyzer = load_skill_script("analyze_target")
+        cls.validator = load_skill_script("validate_scripts")
 
     def assert_bash_syntax(self, text: str) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -413,11 +414,125 @@ class RenderSetupTests(unittest.TestCase):
             self.module.encode_analysis_manifest(analysis)
 
     def test_target_root_must_have_one_lexical_canonical_form(self) -> None:
-        analysis = copy.deepcopy(READY)
-        analysis["target_root"] = "/tmp//sample-skill/."
+        for target_root in (
+            "/tmp//sample-skill/.",
+            "//tmp/sample-skill",
+            "///tmp/sample-skill",
+        ):
+            with self.subTest(target_root=target_root):
+                analysis = copy.deepcopy(READY)
+                analysis["target_root"] = target_root
+                with self.assertRaisesRegex(ValueError, "normalized"):
+                    self.module.encode_analysis_manifest(analysis)
 
-        with self.assertRaisesRegex(ValueError, "normalized"):
-            self.module.encode_analysis_manifest(analysis)
+        root = copy.deepcopy(READY)
+        root["target_root"] = "/"
+        self.assertEqual(self.module.decode_analysis_manifest(
+            self.module.encode_analysis_manifest(root)
+        ), root)
+
+    def test_template_substitution_is_one_pass_and_rejects_bad_template_shapes(self) -> None:
+        replacements = {
+            "@@FIRST@@": "@@SECOND@@",
+            "@@SECOND@@": "literal @@ data",
+        }
+        self.assertEqual(
+            self.module.render_template(
+                "@@FIRST@@|@@SECOND@@",
+                replacements,
+                "Test",
+            ),
+            "@@SECOND@@|literal @@ data",
+        )
+
+        bad_templates = {
+            "missing": "@@FIRST@@",
+            "duplicate": "@@FIRST@@|@@SECOND@@|@@SECOND@@",
+            "unknown": "@@FIRST@@|@@SECOND@@|@@UNKNOWN@@",
+            "malformed": "@@FIRST@@|@@SECOND@@|@@",
+        }
+        for name, template in bad_templates.items():
+            with self.subTest(name=name):
+                with self.assertRaisesRegex(ValueError, "template|placeholder"):
+                    self.module.render_template(template, replacements, "Test")
+
+    def test_placeholder_like_setup_and_dynamic_adapter_data_remain_literal(self) -> None:
+        analysis = copy.deepcopy(READY)
+        analysis["display_name"] = "Literal @@DISPLAY_NAME@@, @@LIVEWARE_BINDING@@, and @@"
+        analysis["adapter"]["command"] = [
+            "python3",
+            "@@LIVEWARE_BINDING@@",
+            "argument@@value",
+            "{port}",
+        ]
+        analysis["adapter"]["required_commands"] = [
+            "python3",
+            "tool@@LIVEWARE_BINDING@@",
+        ]
+        analysis["adapter"]["workdir"] = "liveware/@@TARGET_SERVER_ADAPTER@@/dir@@"
+        analysis["adapter"]["readiness"]["url"] = (
+            "http://127.0.0.1:{port}/@@LIVEWARE_BINDING@@/ready@@"
+        )
+        analysis["adapter"]["log"] = {
+            "owner": "generated-start",
+            "path": "${HOME}/.clawling/apps/@@SKILL_NAME@@/server@@.log",
+        }
+
+        setup = self.module.render_setup(analysis)
+        start = self.module.render_start(analysis)
+
+        self.assertIn(
+            "CLAWCHAT_APP_NAME = " + json.dumps(analysis["display_name"], ensure_ascii=False),
+            setup,
+        )
+        self.assertIn("@@LIVEWARE_BINDING@@", start)
+        self.assertIn("argument@@value", start)
+        self.assertIn(
+            'SERVER_COMMAND=(python3 @@LIVEWARE_BINDING@@ argument@@value "${PORT}")',
+            start,
+        )
+        self.assertIn("command -v -- tool@@LIVEWARE_BINDING@@", start)
+        self.assertIn('cd -- "$SKILL_ROOT/liveware/@@TARGET_SERVER_ADAPTER@@/dir@@"', start)
+        self.assertIn("http://127.0.0.1:${PORT}/@@LIVEWARE_BINDING@@/ready@@", start)
+        self.assertIn(
+            'SERVER_LOG="${HOME}/.clawling/apps/@@SKILL_NAME@@/server@@.log"',
+            start,
+        )
+        self.assertEqual(self.module.extract_analysis_manifest(setup), analysis)
+        self.assertEqual(self.module.extract_analysis_manifest(start), analysis)
+        self.assertEqual(self.validator.validate_texts(setup, start, analysis=analysis), [])
+        self.assert_bash_syntax(start)
+
+        invalid_name = copy.deepcopy(analysis)
+        invalid_name["skill_name"] = "@@SKILL_NAME@@"
+        with self.assertRaisesRegex(ValueError, "skill identifier"):
+            self.module.render_start(invalid_name)
+
+    def test_placeholder_like_static_directory_remains_literal(self) -> None:
+        analysis = copy.deepcopy(READY)
+        static_dir = "liveware/@@LIVEWARE_BINDING@@/assets@@"
+        analysis["adapter"] = {
+            "kind": "static",
+            "workdir": static_dir,
+            "command": [],
+            "required_commands": [],
+            "default_port": None,
+            "readiness": None,
+            "log": {"owner": "target", "path": None},
+        }
+        analysis["static_dir"] = static_dir
+
+        setup = self.module.render_setup(analysis)
+        start = self.module.render_start(analysis)
+
+        self.assertIn(
+            '"$LIVEWARE_BIN" tunnel bind-static "$APP_ID" '
+            '"$SKILL_ROOT/liveware/@@LIVEWARE_BINDING@@/assets@@"',
+            start,
+        )
+        self.assertEqual(self.module.extract_analysis_manifest(start), analysis)
+        self.assertEqual(self.validator.validate_texts(setup, start, analysis=analysis), [])
+        self.assert_bash_syntax(start)
 
     def test_analysis_json_loader_rejects_duplicate_keys(self) -> None:
         duplicate = json.dumps(READY, ensure_ascii=False).replace(

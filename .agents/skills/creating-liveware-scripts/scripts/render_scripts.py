@@ -16,6 +16,7 @@ SKILL_ROOT = Path(__file__).resolve().parent.parent
 ASSET_ROOT = SKILL_ROOT / "assets"
 ANALYSIS_MARKER_PREFIX = "# LIVEWARE ANALYSIS V1: "
 SKILL_NAME_RE = re.compile(r"^[a-z0-9][a-z0-9-]{0,62}$")
+PLACEHOLDER_TOKEN_RE = re.compile(r"@@[^\r\n]*?@@")
 TOP_LEVEL_REQUIRED = frozenset(
     {
         "schema_version",
@@ -86,6 +87,7 @@ def require_ready(analysis: dict[str, object]) -> None:
     if (
         not target_path.is_absolute()
         or ".." in target_path.parts
+        or target_root.startswith("//")
         or os.path.normpath(target_root) != target_root
     ):
         raise ValueError("Analysis target_root must be an absolute normalized path.")
@@ -181,6 +183,43 @@ def analysis_manifest_line(analysis: dict[str, object]) -> str:
     return ANALYSIS_MARKER_PREFIX + encode_analysis_manifest(analysis)
 
 
+def render_template(
+    template: str,
+    replacements: dict[str, str],
+    label: str,
+) -> str:
+    if not isinstance(template, str) or not isinstance(replacements, dict):
+        raise ValueError(f"{label} template and replacements must be text mappings.")
+    if not replacements or any(
+        not isinstance(marker, str)
+        or PLACEHOLDER_TOKEN_RE.fullmatch(marker) is None
+        or not isinstance(value, str)
+        for marker, value in replacements.items()
+    ):
+        raise ValueError(f"{label} template placeholders are malformed.")
+
+    matches = list(PLACEHOLDER_TOKEN_RE.finditer(template))
+    tokens = [match.group(0) for match in matches]
+    unknown = set(tokens) - set(replacements)
+    if unknown:
+        raise ValueError(f"{label} template contains an unknown placeholder.")
+    if any(tokens.count(marker) != 1 for marker in replacements):
+        raise ValueError(f"{label} template must contain every expected placeholder exactly once.")
+
+    offset = 0
+    for match in matches:
+        if "@@" in template[offset:match.start()]:
+            raise ValueError(f"{label} template contains a malformed placeholder.")
+        offset = match.end()
+    if "@@" in template[offset:]:
+        raise ValueError(f"{label} template contains a malformed placeholder.")
+
+    return PLACEHOLDER_TOKEN_RE.sub(
+        lambda match: replacements[match.group(0)],
+        template,
+    )
+
+
 def render_setup(analysis: dict[str, object]) -> str:
     require_ready(analysis)
     template = (ASSET_ROOT / "setup.py.tmpl").read_text(encoding="utf-8")
@@ -189,11 +228,7 @@ def render_setup(analysis: dict[str, object]) -> str:
         "@@SKILL_NAME@@": json.dumps(analysis["skill_name"], ensure_ascii=False),
         "@@DISPLAY_NAME@@": json.dumps(analysis.get("display_name") or analysis["skill_name"], ensure_ascii=False),
     }
-    for marker, value in replacements.items():
-        template = template.replace(marker, value)
-    if "@@" in template:
-        raise ValueError("Setup template contains unresolved markers.")
-    return template
+    return render_template(template, replacements, "Setup")
 
 
 def atomic_write(path: Path, text: str, mode: int = 0o755) -> None:
@@ -265,7 +300,7 @@ END_ADAPTER = "# END TARGET SERVER ADAPTER"
 BEGIN_BINDING = "# BEGIN LIVEWARE BINDING"
 END_BINDING = "# END LIVEWARE BINDING"
 MARKERS = (BEGIN_ADAPTER, END_ADAPTER, BEGIN_BINDING, END_BINDING)
-REQUIRED_COMMAND_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._+-]*$")
+REQUIRED_COMMAND_RE = re.compile(r"^[A-Za-z0-9@][A-Za-z0-9._+@-]*$")
 
 
 def require_shell_text(value: object, label: str, *, allow_empty: bool = False) -> str:
@@ -519,11 +554,7 @@ def _render_fresh_start(analysis: dict[str, object]) -> str:
         "@@TARGET_SERVER_ADAPTER@@": generated_adapter,
         "@@LIVEWARE_BINDING@@": binding,
     }
-    for marker, value in replacements.items():
-        template = template.replace(marker, value)
-    if "@@" in template:
-        raise ValueError("Start template contains unresolved markers.")
-    return template
+    return render_template(template, replacements, "Start")
 
 
 def render_start(analysis: dict[str, object], existing: str | None = None) -> str:
