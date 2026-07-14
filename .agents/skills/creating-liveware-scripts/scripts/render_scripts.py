@@ -15,23 +15,25 @@ from typing import cast
 SKILL_ROOT = Path(__file__).resolve().parent.parent
 ASSET_ROOT = SKILL_ROOT / "assets"
 ANALYSIS_MARKER_PREFIX = "# LIVEWARE ANALYSIS V1: "
-CREDENTIAL_KEY_RE = re.compile(
-    r"(?:api[_-]?key|auth(?:orization)?|credential|password|private[_-]?key|secret|token)",
-    re.IGNORECASE,
-)
 SKILL_NAME_RE = re.compile(r"^[a-z0-9][a-z0-9-]{0,62}$")
 
 
 def require_ready(analysis: dict[str, object]) -> None:
     if not isinstance(analysis, dict):
         raise ValueError("Analysis must be an object.")
-    if analysis.get("schema_version") != 1 or analysis.get("status") != "ready":
+    schema_version = analysis.get("schema_version")
+    if type(schema_version) is not int or schema_version != 1 or analysis.get("status") != "ready":
         raise ValueError("Analysis must use schema version 1 and have status ready.")
     if analysis.get("issues") != []:
         raise ValueError("Analysis contains unresolved issues.")
     target_root = analysis.get("target_root")
     if not isinstance(target_root, str) or not target_root:
         raise ValueError("Analysis target_root must be a non-empty string.")
+    if any(ord(character) < 32 or ord(character) == 127 for character in target_root):
+        raise ValueError("Analysis target_root must not contain a control character.")
+    target_path = Path(target_root)
+    if not target_path.is_absolute() or ".." in target_path.parts:
+        raise ValueError("Analysis target_root must be an absolute normalized path.")
     skill_name = analysis.get("skill_name")
     if isinstance(skill_name, str) and any(
         ord(character) < 32 or ord(character) == 127 for character in skill_name
@@ -44,10 +46,39 @@ def require_ready(analysis: dict[str, object]) -> None:
         raise ValueError("Analysis display_name must be a string when present.")
 
 
+def _credential_key(key: str) -> bool:
+    separated = re.sub(r"([a-z0-9])([A-Z])", r"\1_\2", key)
+    parts = [part.lower() for part in re.findall(r"[A-Za-z0-9]+", separated)]
+    if set(parts) & {
+        "auth",
+        "authentication",
+        "authorization",
+        "credential",
+        "credentials",
+        "passphrase",
+        "passwd",
+        "password",
+        "secret",
+        "token",
+    }:
+        return True
+    pairs = set(zip(parts, parts[1:]))
+    if pairs & {("access", "key"), ("api", "key"), ("private", "key")}:
+        return True
+    return "".join(parts) in {
+        "accesskey",
+        "apikey",
+        "passphrase",
+        "passwd",
+        "password",
+        "privatekey",
+    }
+
+
 def _reject_credentials(value: object) -> None:
     if isinstance(value, dict):
         for key, child in value.items():
-            if isinstance(key, str) and CREDENTIAL_KEY_RE.search(key):
+            if isinstance(key, str) and _credential_key(key):
                 raise ValueError("Analysis manifest must not contain credential fields.")
             _reject_credentials(child)
     elif isinstance(value, (list, tuple)):
@@ -107,7 +138,7 @@ def decode_analysis_manifest(payload: str) -> dict[str, object]:
     return decoded
 
 
-def extract_analysis_manifest(text: str) -> dict[str, object]:
+def extract_analysis_manifest_payload(text: str) -> str:
     if not isinstance(text, str):
         raise ValueError("Script must be text.")
     payloads: list[str] = []
@@ -116,7 +147,12 @@ def extract_analysis_manifest(text: str) -> dict[str, object]:
             payloads.append(line[len(ANALYSIS_MARKER_PREFIX):])
     if len(payloads) != 1:
         raise ValueError("Script must contain exactly one Liveware analysis manifest marker.")
-    return decode_analysis_manifest(payloads[0])
+    decode_analysis_manifest(payloads[0])
+    return payloads[0]
+
+
+def extract_analysis_manifest(text: str) -> dict[str, object]:
+    return decode_analysis_manifest(extract_analysis_manifest_payload(text))
 
 
 def analysis_manifest_line(analysis: dict[str, object]) -> str:
@@ -169,6 +205,7 @@ def path_is_within(path: Path, root: Path) -> bool:
 
 
 def resolve_target_root(analysis: dict[str, object], requested: Path) -> Path:
+    require_ready(analysis)
     raw_target = require_shell_text(analysis.get("target_root"), "Analysis target_root")
     target = requested.expanduser().resolve()
     try:
@@ -459,8 +496,8 @@ def render_start(analysis: dict[str, object], existing: str | None = None) -> st
     if existing is None:
         return fresh
 
-    embedded = extract_analysis_manifest(existing)
-    if embedded != analysis:
+    embedded_payload = extract_analysis_manifest_payload(existing)
+    if embedded_payload != encode_analysis_manifest(analysis):
         raise ValueError("Existing start.sh analysis manifest does not match current analysis.")
     existing_spans = parse_marker_spans(existing)
     fresh_spans = parse_marker_spans(fresh)
@@ -476,11 +513,12 @@ def render_start(analysis: dict[str, object], existing: str | None = None) -> st
 
 def validate_existing_manifest_pair(setup: str, start: str, analysis: dict[str, object]) -> None:
     try:
-        setup_manifest = extract_analysis_manifest(setup)
-        start_manifest = extract_analysis_manifest(start)
+        setup_payload = extract_analysis_manifest_payload(setup)
+        start_payload = extract_analysis_manifest_payload(start)
+        current_payload = encode_analysis_manifest(analysis)
     except ValueError as exc:
         raise ValueError("Existing setup/start manifest pair is missing or invalid.") from exc
-    if setup_manifest != start_manifest or setup_manifest != analysis:
+    if setup_payload != start_payload or setup_payload != current_payload:
         raise ValueError("Existing setup/start manifest pair does not match current analysis.")
 
 

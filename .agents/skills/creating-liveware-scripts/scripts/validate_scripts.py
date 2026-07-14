@@ -142,10 +142,11 @@ def _extract_manifest(
     path: str,
     label: str,
     findings: list[Finding],
-) -> dict[str, object] | None:
+) -> tuple[str, dict[str, object]] | None:
     renderer = load_renderer()
     try:
-        return renderer.extract_analysis_manifest(text)
+        payload = renderer.extract_analysis_manifest_payload(text)
+        return payload, renderer.decode_analysis_manifest(payload)
     except (TypeError, ValueError):
         add(
             findings,
@@ -156,31 +157,29 @@ def _extract_manifest(
         return None
 
 
-def _valid_explicit_analysis(analysis: object) -> bool:
-    return (
-        isinstance(analysis, dict)
-        and analysis.get("schema_version") == 1
-        and analysis.get("status") == "ready"
-        and analysis.get("issues") == []
-    )
-
-
 def _manifest_gate(
     setup: str,
     start: str,
     findings: list[Finding],
     analysis: dict[str, object] | None,
-) -> None:
+) -> tuple[bool, dict[str, object] | None]:
     renderer = load_renderer()
-    setup_manifest = _extract_manifest(setup, "LW018", SETUP_PATH, "Setup", findings)
-    start_manifest = _extract_manifest(start, "LW019", START_PATH, "Start", findings)
+    setup_record = _extract_manifest(setup, "LW018", SETUP_PATH, "Setup", findings)
+    start_record = _extract_manifest(start, "LW019", START_PATH, "Start", findings)
+    same_manifest = (
+        setup_record is not None
+        and start_record is not None
+        and setup_record[0] == start_record[0]
+    )
 
-    if setup_manifest is not None and start_manifest is not None and setup_manifest != start_manifest:
+    if setup_record is not None and start_record is not None and not same_manifest:
         add(findings, "LW018", SETUP_PATH, "Setup and start analysis manifests do not match.")
         add(findings, "LW019", START_PATH, "Setup and start analysis manifests do not match.")
 
     if analysis is not None:
-        if not _valid_explicit_analysis(analysis):
+        try:
+            explicit_payload = renderer.encode_analysis_manifest(analysis)
+        except (KeyError, TypeError, ValueError):
             add(
                 findings,
                 "LW018",
@@ -188,26 +187,49 @@ def _manifest_gate(
                 "Resolved schema-version-1 analysis with no issues is required.",
             )
         else:
-            if setup_manifest is not None and setup_manifest != analysis:
+            if setup_record is not None and setup_record[0] != explicit_payload:
                 add(findings, "LW018", SETUP_PATH, "Setup manifest does not match explicit analysis.")
-            if start_manifest is not None and start_manifest != analysis:
+            if start_record is not None and start_record[0] != explicit_payload:
                 add(findings, "LW019", START_PATH, "Start manifest does not match explicit analysis.")
 
-    if setup_manifest is not None:
+    setup_exact = False
+    if setup_record is not None:
         try:
-            expected_setup = renderer.render_setup(setup_manifest)
+            expected_setup = renderer.render_setup(setup_record[1])
         except (KeyError, TypeError, ValueError):
             expected_setup = None
-        if setup != expected_setup:
+        setup_exact = setup == expected_setup
+        if not setup_exact:
             add(findings, "LW018", SETUP_PATH, "Generated setup does not match analysis.")
 
-    if start_manifest is not None:
+    start_exact = False
+    if start_record is not None:
         try:
-            expected_start = renderer.render_start(start_manifest)
+            expected_start = renderer.render_start(start_record[1])
         except (KeyError, TypeError, ValueError):
             expected_start = None
-        if start != expected_start:
+        start_exact = start == expected_start
+        if not start_exact:
             add(findings, "LW019", START_PATH, "Generated start or adapter does not match analysis.")
+
+    canonical_pair = same_manifest and setup_exact and start_exact
+    embedded = setup_record[1] if same_manifest and setup_record is not None else None
+    return canonical_pair, embedded
+
+
+def _validate_texts_with_manifest(
+    setup: str,
+    start: str,
+    analysis: dict[str, object] | None = None,
+) -> tuple[list[Finding], dict[str, object] | None]:
+    findings: list[Finding] = []
+    canonical_pair, embedded = _manifest_gate(setup, start, findings, analysis)
+    if not canonical_pair:
+        _validate_python_syntax(setup, findings)
+        _setup_diagnostics(setup, findings)
+        _start_diagnostics(start, findings)
+        _obvious_cross_script_diagnostics(setup, start, findings)
+    return findings, embedded
 
 
 def validate_texts(
@@ -215,13 +237,7 @@ def validate_texts(
     start: str,
     analysis: dict[str, object] | None = None,
 ) -> list[Finding]:
-    findings: list[Finding] = []
-    _validate_python_syntax(setup, findings)
-    _setup_diagnostics(setup, findings)
-    _start_diagnostics(start, findings)
-    _obvious_cross_script_diagnostics(setup, start, findings)
-    _manifest_gate(setup, start, findings, analysis)
-    return findings
+    return _validate_texts_with_manifest(setup, start, analysis=analysis)[0]
 
 
 def validate_consistency(
@@ -234,17 +250,31 @@ def validate_consistency(
     before = validate_texts(setup, start, analysis=analysis)
     for finding in before:
         add(findings, finding.code, finding.path, finding.message)
-    if target is not None and _valid_explicit_analysis(analysis):
+    if target is not None:
+        renderer = load_renderer()
         try:
-            load_renderer().resolve_target_root(analysis, target)
+            renderer.encode_analysis_manifest(analysis)
+        except (KeyError, TypeError, ValueError):
+            return
+        try:
+            renderer.resolve_target_root(analysis, target)
         except (OSError, RuntimeError, TypeError, ValueError):
             add(findings, "LW018", "analysis.json", "Analysis target_root does not match target.")
 
 
 def validate_target(target: Path, analysis: dict[str, object] | None = None) -> list[Finding]:
+    target = target.expanduser().absolute()
+    resolved_target = target.resolve()
+    findings: list[Finding] = []
+    renderer = load_renderer()
     setup_path = target / SETUP_PATH
     start_path = target / START_PATH
-    findings: list[Finding] = []
+    try:
+        renderer.validate_script_paths(resolved_target)
+    except (OSError, RuntimeError, ValueError):
+        add(findings, "LW001", str(setup_path), "Setup script path is unsafe or escapes the target.")
+        add(findings, "LW005", str(start_path), "Start script path is unsafe or escapes the target.")
+        return findings
     if not setup_path.is_file():
         add(findings, "LW001", str(setup_path), "Required setup.py is missing.")
     if not start_path.is_file():
@@ -252,14 +282,36 @@ def validate_target(target: Path, analysis: dict[str, object] | None = None) -> 
     if findings:
         return findings
 
-    setup = setup_path.read_text(encoding="utf-8")
-    start = start_path.read_text(encoding="utf-8")
-    findings.extend(validate_texts(setup, start, analysis=analysis))
-    if analysis is not None and _valid_explicit_analysis(analysis):
+    setup: str | None = None
+    start: str | None = None
+    try:
+        setup = setup_path.read_text(encoding="utf-8")
+    except (OSError, UnicodeError):
+        add(findings, "LW018", str(setup_path), "Setup script could not be read as UTF-8.")
+    try:
+        start = start_path.read_text(encoding="utf-8")
+    except (OSError, UnicodeError):
+        add(findings, "LW019", str(start_path), "Start script could not be read as UTF-8.")
+    if setup is None or start is None:
+        return findings
+
+    text_findings, embedded = _validate_texts_with_manifest(setup, start, analysis=analysis)
+    findings.extend(text_findings)
+    if embedded is not None:
         try:
-            load_renderer().resolve_target_root(analysis, target)
+            renderer.resolve_target_root(embedded, target)
         except (OSError, RuntimeError, TypeError, ValueError):
             add(findings, "LW018", "analysis.json", "Analysis target_root does not match target.")
+    if analysis is not None:
+        try:
+            renderer.encode_analysis_manifest(analysis)
+        except (KeyError, TypeError, ValueError):
+            pass
+        else:
+            try:
+                renderer.resolve_target_root(analysis, target)
+            except (OSError, RuntimeError, TypeError, ValueError):
+                add(findings, "LW018", "analysis.json", "Analysis target_root does not match target.")
 
     result = subprocess.run(
         ["bash", "-n", str(start_path)],

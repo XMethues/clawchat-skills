@@ -202,6 +202,35 @@ test -f "$STATE_FILE"
             {(item.code, item.path, item.message) for item in findings},
         )
 
+    def test_manifest_and_explicit_analysis_identity_are_type_exact(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            integer = self.analysis(Path(tmp))
+            integer["evidence"] = [{"value": 1}]
+            floating = copy.deepcopy(integer)
+            floating["evidence"] = [{"value": 1.0}]
+            setup = self.renderer.render_setup(integer)
+            start = self.renderer.render_start(floating)
+
+        pair_codes = self.codes(self.validator.validate_texts(setup, start))
+        self.assertTrue({"LW018", "LW019"} <= pair_codes)
+
+        integer_setup, integer_start = self.generated(integer)
+        explicit_codes = self.codes(
+            self.validator.validate_texts(integer_setup, integer_start, analysis=floating)
+        )
+        self.assertTrue({"LW018", "LW019"} <= explicit_codes)
+
+        boolean_schema = {**integer, "schema_version": True}
+        findings = self.validator.validate_texts(
+            integer_setup,
+            integer_start,
+            analysis=boolean_schema,
+        )
+        self.assertIn(
+            ("LW018", "analysis.json", "Resolved schema-version-1 analysis with no issues is required."),
+            {(item.code, item.path, item.message) for item in findings},
+        )
+
     def test_target_root_mismatch_is_an_analysis_finding(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             target = write_target(Path(tmp))
@@ -214,6 +243,79 @@ test -f "$STATE_FILE"
             ("LW018", "analysis.json", "Analysis target_root does not match target."),
             {(item.code, item.path, item.message) for item in findings},
         )
+
+    def test_embedded_target_root_is_bound_without_explicit_analysis(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            target = write_target(Path(tmp))
+            analysis = self.analysis(target)
+            analysis["target_root"] = str((target / "elsewhere").resolve())
+            self.write_scripts(target, *self.generated(analysis))
+            findings = self.validator.validate_target(target)
+        self.assertIn(
+            ("LW018", "analysis.json", "Analysis target_root does not match target."),
+            {(item.code, item.path, item.message) for item in findings},
+        )
+
+    def test_validator_rejects_symlinked_parents_and_escaping_outputs_before_subprocess(self) -> None:
+        for kind in ("liveware-parent", "scripts-parent", "setup-output", "start-output"):
+            for explicit in (False, True):
+                with self.subTest(kind=kind, explicit=explicit), tempfile.TemporaryDirectory() as tmp:
+                    root = Path(tmp)
+                    target = write_target(root)
+                    outside = root / "outside"
+                    outside.mkdir()
+                    analysis = self.analysis(target)
+                    setup, start = self.generated(analysis)
+                    if kind == "liveware-parent":
+                        outside_liveware = outside / "liveware"
+                        outside_scripts = outside_liveware / "scripts"
+                        outside_scripts.mkdir(parents=True)
+                        (outside_scripts / "setup.py").write_text(setup, encoding="utf-8")
+                        (outside_scripts / "start.sh").write_text(start, encoding="utf-8")
+                        (target / "liveware").symlink_to(outside_liveware, target_is_directory=True)
+                    elif kind == "scripts-parent":
+                        (target / "liveware").mkdir()
+                        outside_scripts = outside / "scripts"
+                        outside_scripts.mkdir()
+                        (outside_scripts / "setup.py").write_text(setup, encoding="utf-8")
+                        (outside_scripts / "start.sh").write_text(start, encoding="utf-8")
+                        (target / "liveware" / "scripts").symlink_to(
+                            outside_scripts,
+                            target_is_directory=True,
+                        )
+                    else:
+                        self.write_scripts(target, setup, start)
+                        name = "setup.py" if kind == "setup-output" else "start.sh"
+                        output = target / "liveware" / "scripts" / name
+                        outside_file = outside / name
+                        outside_file.write_text(output.read_text(encoding="utf-8"), encoding="utf-8")
+                        output.unlink()
+                        output.symlink_to(outside_file)
+
+                    with mock.patch.object(
+                        Path,
+                        "read_text",
+                        side_effect=AssertionError("unsafe script path was read"),
+                    ) as read, mock.patch.object(self.validator.subprocess, "run") as run:
+                        findings = self.validator.validate_target(
+                            target,
+                            analysis=analysis if explicit else None,
+                        )
+                    self.assertTrue({"LW001", "LW005"} & self.codes(findings))
+                    read.assert_not_called()
+                    run.assert_not_called()
+
+    def test_canonical_metadata_that_looks_diagnostic_remains_zero_finding(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            target = write_target(Path(tmp))
+            analysis = self.analysis(target)
+            analysis["display_name"] = (
+                "npm install apps[0] os.environ.get('API_TOKEN') author authority"
+            )
+            setup, start = self.generated(analysis)
+            self.assertEqual(self.validator.validate_texts(setup, start), [])
+            self.write_scripts(target, setup, start)
+            self.assertEqual(self.validator.validate_target(target), [])
 
     def test_python_and_bash_syntax_findings_remain_explicit(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -298,6 +400,42 @@ test -f "$STATE_FILE"
             invalid = self.run_cli(target, analysis_path)
             self.assertEqual(invalid.returncode, 1)
             self.assertEqual({item["code"] for item in json.loads(invalid.stdout)}, {"LW018"})
+
+    def test_cli_returns_structured_findings_for_invalid_utf8_scripts(self) -> None:
+        for name, code in (("setup.py", "LW018"), ("start.sh", "LW019")):
+            with self.subTest(name=name), tempfile.TemporaryDirectory() as tmp:
+                target = write_target(Path(tmp))
+                analysis = self.analysis(target)
+                self.write_scripts(target, *self.generated(analysis))
+                (target / "liveware" / "scripts" / name).write_bytes(b"\xff\xfe")
+
+                result = self.run_cli(target)
+
+                self.assertEqual(result.returncode, 1)
+                self.assertEqual(result.stderr, "")
+                payload = json.loads(result.stdout)
+                self.assertIn(code, {item["code"] for item in payload})
+
+    def test_target_read_oserror_is_structured_before_bash(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            target = write_target(Path(tmp))
+            analysis = self.analysis(target)
+            self.write_scripts(target, *self.generated(analysis))
+            original_read_text = Path.read_text
+
+            def read_text(path: Path, *args: object, **kwargs: object) -> str:
+                if path.name == "setup.py":
+                    raise PermissionError("denied")
+                return original_read_text(path, *args, **kwargs)
+
+            with mock.patch.object(Path, "read_text", read_text), mock.patch.object(
+                self.validator.subprocess,
+                "run",
+            ) as run:
+                findings = self.validator.validate_target(target)
+
+        self.assertIn("LW018", self.codes(findings))
+        run.assert_not_called()
 
 
 if __name__ == "__main__":

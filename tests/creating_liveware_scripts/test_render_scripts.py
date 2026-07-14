@@ -143,6 +143,8 @@ class RenderSetupTests(unittest.TestCase):
             "invalid-utf8": base64.urlsafe_b64encode(b"\xff").decode("ascii"),
             "non-object": encoded([READY]),
             "non-v1": encoded({**READY, "schema_version": 2}),
+            "boolean-v1": encoded({**READY, "schema_version": True}),
+            "float-v1": encoded({**READY, "schema_version": 1.0}),
             "non-ready": encoded({**READY, "status": "blocked"}),
             "issues": encoded({**READY, "issues": [{"code": "blocked"}]}),
             "noncanonical": encoded(READY, canonical=False),
@@ -163,7 +165,28 @@ class RenderSetupTests(unittest.TestCase):
             self.module.extract_analysis_manifest(f"{marker}\n{marker}\n")
 
     def test_manifest_encoder_rejects_direct_credentials(self) -> None:
-        for key in ("token", "accessToken", "password", "clientSecret", "api_key", "credential"):
+        for key in (
+            "token",
+            "accessToken",
+            "password",
+            "passWord",
+            "pass_word",
+            "pass-word",
+            "passwd",
+            "passWd",
+            "pass_wd",
+            "passphrase",
+            "passPhrase",
+            "pass_phrase",
+            "pass-phrase",
+            "clientSecret",
+            "api_key",
+            "access_key",
+            "access-key",
+            "private_key",
+            "authorization",
+            "credential",
+        ):
             with self.subTest(key=key):
                 with self.assertRaisesRegex(ValueError, "credential"):
                     self.module.encode_analysis_manifest({**READY, key: "do-not-embed"})
@@ -172,6 +195,38 @@ class RenderSetupTests(unittest.TestCase):
         nested["evidence"] = ({"clientSecret": "do-not-embed"},)
         with self.assertRaisesRegex(ValueError, "credential"):
             self.module.encode_analysis_manifest(nested)
+
+        safe = copy.deepcopy(READY)
+        safe["evidence"] = [{"author": "Ada", "authority": "local"}]
+        self.assertEqual(self.module.decode_analysis_manifest(
+            self.module.encode_analysis_manifest(safe)
+        ), safe)
+
+    def test_manifest_identity_is_type_exact_for_nested_json_values(self) -> None:
+        integer = copy.deepcopy(READY)
+        integer["evidence"] = [{"value": 1}]
+        floating = copy.deepcopy(READY)
+        floating["evidence"] = [{"value": 1.0}]
+        boolean = copy.deepcopy(READY)
+        boolean["evidence"] = [{"value": True}]
+
+        self.assertNotEqual(
+            self.module.encode_analysis_manifest(integer),
+            self.module.encode_analysis_manifest(floating),
+        )
+        self.assertNotEqual(
+            self.module.encode_analysis_manifest(integer),
+            self.module.encode_analysis_manifest(boolean),
+        )
+        existing = self.module.render_start(integer)
+        with self.assertRaisesRegex(ValueError, "manifest.*current analysis"):
+            self.module.render_start(floating, existing=existing)
+        with self.assertRaisesRegex(ValueError, "manifest pair.*current analysis"):
+            self.module.validate_existing_manifest_pair(
+                self.module.render_setup(integer),
+                existing,
+                floating,
+            )
 
     def test_setup_rejects_non_ready_or_unresolved_analysis(self) -> None:
         cases = (
@@ -191,6 +246,9 @@ class RenderSetupTests(unittest.TestCase):
             "non-string-display": {**READY, "display_name": 17},
             "empty-target": {**READY, "target_root": ""},
             "non-string-target": {**READY, "target_root": 17},
+            "relative-target": {**READY, "target_root": "relative/skill"},
+            "parent-target": {**READY, "target_root": "/tmp/skill/../other"},
+            "control-target": {**READY, "target_root": "/tmp/skill\nother"},
         }
         for name, analysis in cases.items():
             with self.subTest(name=name):
