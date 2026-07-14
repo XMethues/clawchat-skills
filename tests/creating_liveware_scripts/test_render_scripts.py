@@ -180,12 +180,22 @@ class RenderSetupTests(unittest.TestCase):
             "pass_phrase",
             "pass-phrase",
             "clientSecret",
+            "clientsecret",
+            "refreshToken",
+            "refreshtoken",
+            "authToken",
+            "authtoken",
+            "bearerToken",
+            "bearertoken",
             "api_key",
             "access_key",
             "access-key",
+            "accessKeyId",
+            "accesskeyid",
             "private_key",
             "authorization",
             "credential",
+            "token2",
         ):
             with self.subTest(key=key):
                 with self.assertRaisesRegex(ValueError, "credential"):

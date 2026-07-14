@@ -47,32 +47,25 @@ def require_ready(analysis: dict[str, object]) -> None:
 
 
 def _credential_key(key: str) -> bool:
-    separated = re.sub(r"([a-z0-9])([A-Z])", r"\1_\2", key)
-    parts = [part.lower() for part in re.findall(r"[A-Za-z0-9]+", separated)]
-    if set(parts) & {
-        "auth",
-        "authentication",
-        "authorization",
-        "credential",
-        "credentials",
-        "passphrase",
-        "passwd",
-        "password",
-        "secret",
-        "token",
-    }:
+    normalized = re.sub(r"[^a-z0-9]+", "", key.lower())
+    if normalized == "auth":
         return True
-    pairs = set(zip(parts, parts[1:]))
-    if pairs & {("access", "key"), ("api", "key"), ("private", "key")}:
-        return True
-    return "".join(parts) in {
-        "accesskey",
-        "apikey",
-        "passphrase",
-        "passwd",
-        "password",
-        "privatekey",
-    }
+    return any(
+        stem in normalized
+        for stem in (
+            "accesskey",
+            "apikey",
+            "authentication",
+            "authorization",
+            "credential",
+            "passphrase",
+            "passwd",
+            "password",
+            "privatekey",
+            "secret",
+            "token",
+        )
+    )
 
 
 def _reject_credentials(value: object) -> None:

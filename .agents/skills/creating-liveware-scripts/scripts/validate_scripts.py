@@ -262,9 +262,28 @@ def validate_consistency(
             add(findings, "LW018", "analysis.json", "Analysis target_root does not match target.")
 
 
+def _unsafe_target_findings(target: Path) -> list[Finding]:
+    return [
+        Finding(
+            "LW001",
+            str(target / SETUP_PATH),
+            "Setup script path is unsafe or escapes the target.",
+        ),
+        Finding(
+            "LW005",
+            str(target / START_PATH),
+            "Start script path is unsafe or escapes the target.",
+        ),
+    ]
+
+
 def validate_target(target: Path, analysis: dict[str, object] | None = None) -> list[Finding]:
-    target = target.expanduser().absolute()
-    resolved_target = target.resolve()
+    raw_target = target
+    try:
+        target = target.expanduser().absolute()
+        resolved_target = target.resolve()
+    except (OSError, RuntimeError):
+        return _unsafe_target_findings(raw_target)
     findings: list[Finding] = []
     renderer = load_renderer()
     setup_path = target / SETUP_PATH
@@ -272,9 +291,7 @@ def validate_target(target: Path, analysis: dict[str, object] | None = None) -> 
     try:
         renderer.validate_script_paths(resolved_target)
     except (OSError, RuntimeError, ValueError):
-        add(findings, "LW001", str(setup_path), "Setup script path is unsafe or escapes the target.")
-        add(findings, "LW005", str(start_path), "Start script path is unsafe or escapes the target.")
-        return findings
+        return _unsafe_target_findings(target)
     if not setup_path.is_file():
         add(findings, "LW001", str(setup_path), "Required setup.py is missing.")
     if not start_path.is_file():
@@ -353,7 +370,12 @@ def main() -> int:
         if finding is not None:
             print_findings([finding])
             return 1
-    findings = validate_target(args.target.expanduser().resolve(), analysis=analysis)
+    try:
+        target = args.target.expanduser().resolve()
+    except (OSError, RuntimeError):
+        print_findings(_unsafe_target_findings(args.target))
+        return 1
+    findings = validate_target(target, analysis=analysis)
     print_findings(findings)
     return 1 if findings else 0
 

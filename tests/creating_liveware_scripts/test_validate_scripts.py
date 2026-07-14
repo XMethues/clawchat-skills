@@ -437,6 +437,20 @@ test -f "$STATE_FILE"
         self.assertIn("LW018", self.codes(findings))
         run.assert_not_called()
 
+    def test_target_symlink_loop_is_structured_for_api_and_cli(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            loop = Path(tmp) / "loop"
+            loop.symlink_to(loop, target_is_directory=True)
+
+            direct = self.validator.validate_target(loop)
+            cli = self.run_cli(loop)
+
+        self.assertTrue({"LW001", "LW005"} <= self.codes(direct))
+        self.assertEqual(cli.returncode, 1)
+        self.assertEqual(cli.stderr, "")
+        payload = json.loads(cli.stdout)
+        self.assertTrue({"LW001", "LW005"} <= {item["code"] for item in payload})
+
 
 if __name__ == "__main__":
     unittest.main()
