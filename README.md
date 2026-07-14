@@ -2,6 +2,10 @@
 
 English | [中文](README_zh.md)
 
+<a href="https://clawling.com/chat/">
+  <img src="assets/clawchat.svg" alt="ClawChat" width="128" height="128">
+</a>
+
 <h1>ClawChat Skills</h1>
 
 <p>Focused skills that extend ClawChat agents with practical workflows and integrations.</p>

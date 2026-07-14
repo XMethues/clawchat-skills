@@ -2,6 +2,10 @@
 
 [English](README.md) | 中文
 
+<a href="https://clawling.com/chat/">
+  <img src="assets/clawchat.svg" alt="ClawChat" width="128" height="128">
+</a>
+
 <h1>ClawChat Skills</h1>
 
 <p>通过实用工作流和集成能力扩展 ClawChat 智能体的专注型 Skills。</p>
