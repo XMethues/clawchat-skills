@@ -58,6 +58,16 @@ when publishing Xiaohongshu image-and-text notes.
 
 ## Development Skills
 
+### [CREATE HERMES SKILL](skills/create-hermes-skill/)
+
+Creates or updates production-ready Hermes Agent skills through requirements
+discovery, Skill-versus-Tool qualification, Hermes-native metadata, focused
+runtime resources, profile installation, validation, and publication guidance.
+
+```bash
+hermes skills install clawling/clawchat-skills/create-hermes-skill
+```
+
 ### [CREATE LIVEWARE SCRIPTS](skills/create-liveware-scripts/)
 
 Generates, audits, and repairs ClawChat Liveware `setup.py` and `start.sh`

@@ -51,6 +51,15 @@ hermes skills install clawling/clawchat-skills/tarot-arcana
 
 ## Development Skills
 
+### [CREATE HERMES SKILL](skills/create-hermes-skill/)
+
+通过需求梳理、Skill 与 Tool 边界判断、Hermes 原生元数据、精简运行资源、
+Profile 安装、验证和发布指导，创建或更新可投入使用的 Hermes Agent Skill。
+
+```bash
+hermes skills install clawling/clawchat-skills/create-hermes-skill
+```
+
 ### [CREATE LIVEWARE SCRIPTS](skills/create-liveware-scripts/)
 
 为 Hermes Skills 生成、审计和修复 ClawChat Liveware 的 `setup.py` 与
