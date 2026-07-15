@@ -9,9 +9,8 @@ Liveware. Liveware lifecycle scripts live under `${HERMES_SKILL_DIR}/liveware/sc
 | --- | --- |
 | `liveware/scripts/setup.py` | Prepare the Liveware app and ClawChat registration |
 | `liveware/scripts/start.sh` | Start/check the preview directory and bind the tunnel |
-| `scripts/office-live-directory-launch.sh` | Server-only lifecycle adapter used by `start.sh` |
-| `scripts/office-liveware-server-only.sh` | Preserved Office directory lifecycle and logging implementation |
-| `scripts/office-live-directory.py` | Directory server invoked by the adapter |
+| `liveware/scripts/server.sh` | Directory-service lifecycle adapter used by `start.sh` |
+| `scripts/office-live-directory.py` | Directory server invoked by the lifecycle adapter |
 
 ## Setup
 
@@ -96,6 +95,7 @@ Directory rules:
 - OfficeCLI binary: `${OFFICE_BIN:-officecli}`; if `officecli` is not on `PATH`, set `OFFICE_BIN` to the installed binary path.
 - Liveware setup script: `${HERMES_SKILL_DIR}/liveware/scripts/setup.py`
 - Liveware start script: `${HERMES_SKILL_DIR}/liveware/scripts/start.sh`
+- Liveware server adapter: `${HERMES_SKILL_DIR}/liveware/scripts/server.sh`
 - Directory server: `${HERMES_SKILL_DIR}/scripts/office-live-directory.py`
 - Liveware script reference: `${HERMES_SKILL_DIR}/references/officecli-liveware.md`
 - Default workflow home: `${OFFICE_LIVE_HOME:-$HERMES_HOME/workspace/office-live}`

@@ -1,11 +1,18 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-PORT="${OFFICE_DIRECTORY_PORT:-26316}"
+PORT="${PORT:-${OFFICE_DIRECTORY_PORT:-26316}}"
+case "$PORT" in
+  ''|*[!0-9]*) echo "office directory: PORT must be an integer from 1 to 65535." >&2; exit 1 ;;
+esac
+if [ "$PORT" -lt 1 ] || [ "$PORT" -gt 65535 ]; then
+  echo "office directory: PORT must be an integer from 1 to 65535." >&2
+  exit 1
+fi
 HERMES_HOME="${HERMES_HOME:-${HOME}/.hermes}"
 LIVE_HOME="${OFFICE_LIVE_HOME:-${HERMES_HOME}/workspace/office-live}"
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SCRIPT="${OFFICE_DIRECTORY_SCRIPT:-${SCRIPT_DIR}/office-live-directory.py}"
+SKILL_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+SCRIPT="${OFFICE_DIRECTORY_SCRIPT:-${SKILL_ROOT}/scripts/office-live-directory.py}"
 LOG="${OFFICE_DIRECTORY_LOG:-${LIVE_HOME}/.state/directory.log}"
 DOC_ROOTS="${OFFICE_DOC_ROOTS:-${LIVE_HOME}/documents}"
 FIRST_DOC_ROOT="${DOC_ROOTS%%:*}"

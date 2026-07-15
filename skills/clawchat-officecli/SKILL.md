@@ -201,11 +201,10 @@ Hermes installation must include every runtime support file below:
 - `assets/web/preview-error.html`
 - `references/officecli-liveware.md`
 - `scripts/office-live-directory.py`
-- `scripts/office-live-directory-launch.sh`
-- `scripts/office-liveware-server-only.sh`
 - `scripts/officecli-ensure.sh`
 - `liveware/scripts/setup.py`
 - `liveware/scripts/start.sh`
+- `liveware/scripts/server.sh`
 
 ## Agent Workflow
 
