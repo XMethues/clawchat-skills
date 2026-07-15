@@ -47,7 +47,7 @@ hermes skills install clawling/clawchat-skills/tarot-arcana
 
 ### [XHS OPERATOR](skills/xhs-operator/)
 
-开发中。
+开发中。使用本机真实浏览器模拟真人操作，发送小红书图文笔记。
 
 ## Development Skills
 

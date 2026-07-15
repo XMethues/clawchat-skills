@@ -53,7 +53,8 @@ hermes skills install clawling/clawchat-skills/tarot-arcana
 
 ### [XHS OPERATOR](skills/xhs-operator/)
 
-In development.
+In development. Uses a real local browser to simulate normal human interactions
+when publishing Xiaohongshu image-and-text notes.
 
 ## Development Skills
 

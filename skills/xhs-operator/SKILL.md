@@ -1,7 +1,7 @@
 ---
 name: xhs-operator
 display_name: XHS Operator
-description: "Upload and publish Xiaohongshu image-and-text notes: QR or SMS login, login-state reuse, 1-18 images, title/body/ordinary topics, remix/copy/visibility/scheduling/collections/locations, preview confirmation, publishing, draft fallback, and local records. Use for Xiaohongshu image-and-text note uploads and creator-account session maintenance."
+description: "Use a real local browser to simulate normal human interactions when uploading and publishing Xiaohongshu image-and-text notes: QR or SMS login, login-state reuse, 1-18 images, title/body/ordinary topics, originality/remix/copy/visibility/scheduling/collections/locations, preview confirmation, publishing, draft fallback, and local records. Use for Xiaohongshu image-and-text note uploads and creator-account session maintenance."
 version: 0.1.0
 platforms: [macos, linux]
 metadata:
@@ -16,7 +16,7 @@ metadata:
 
 # XHS Operator
 
-Upload and publish image-and-text notes for a Xiaohongshu creator account. Guide the user through content confirmation, uploading 1-18 images, filling the title and body, appending ordinary topics, configuring note settings, previewing the complete note, and approving the final publish action.
+Use a real local browser to simulate normal human interactions when uploading and publishing image-and-text notes for a Xiaohongshu creator account. Guide the user through content confirmation, uploading 1-18 images, filling the title and body, appending ordinary topics, configuring note settings, previewing the complete note, and approving the final publish action.
 
 ## Requirements
 
