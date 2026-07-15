@@ -45,11 +45,11 @@ hermes skills install clawling/clawchat-skills/clawchat-officecli
 hermes skills install clawling/clawchat-skills/tarot-arcana
 ```
 
-## Development Skills
-
 ### [XHS OPERATOR](skills/xhs-operator/)
 
 开发中。
+
+## Development Skills
 
 ### [CREATE LIVEWARE SCRIPTS](skills/create-liveware-scripts/)
 

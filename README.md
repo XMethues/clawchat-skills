@@ -51,11 +51,11 @@ grounded psychological interpretation and actionable, non-prophetic guidance.
 hermes skills install clawling/clawchat-skills/tarot-arcana
 ```
 
-## Development Skills
-
 ### [XHS OPERATOR](skills/xhs-operator/)
 
 In development.
+
+## Development Skills
 
 ### [CREATE LIVEWARE SCRIPTS](skills/create-liveware-scripts/)
 
