@@ -26,15 +26,38 @@ Use a real local browser to simulate normal human interactions when uploading an
 Run the requirement check before login or publishing:
 
 ```bash
-node ${HERMES_SKILL_DIR}/scripts/xhs-operator.mjs check
+node /opt/data/skills/xhs-operator/scripts/xhs-operator.mjs check
 ```
 
 If the check fails, stop and report the missing requirement. Do not install or update dependencies from this skill.
+
+### CloakBrowser specifics (don't skip)
+
+- **It is paid software.** Solo $19/mo floor, Team $49/mo, up to Scale $499/mo. Pro features require `CLOAKBROWSER_LICENSE_KEY` in the environment; without it the wrapper falls back to a free build.
+- **Install on a GUI machine, not a headless sandbox.** QR login needs a human to scan the screenshot; that requires display + clipboard on the host running the worker. Confirm with the owner before installing.
+- **ToS caveat.** CloakBrowser is purpose-built to bypass bot detection. Xiaohongshu prohibits automated publishing. Detection-side risk stays with the operator account regardless of how invisible the browser is.
+- Full install options (pip / npm / docker), platform matrix, and pitfalls: see [references/cloakbrowser-install.md](references/cloakbrowser-install.md).
+
+## Authorization gate (read before any install or login)
+
+This skill drives a real browser against a real creator account. Several actions look mechanical but each carries non-reversible side effects. Get explicit owner confirmation before:
+
+1. **`npm install` / `pip install` of cloakbrowser** — costs money on Pro plans, pulls a long-running stateful binary. Confirm source, version, and pricing tier.
+2. **`npm install playwright-core` (or any peer dep)** — same rationale. The wrapper does not declare it automatically.
+3. **`login --mode qr` / `login --mode sms`** — produces a real QR / SMS challenge bound to a real Xiaohongshu account. Confirm whose account and that the user will scan personally.
+4. **`prepare --request <json>`** — fills the real publish form with images, title, body, topics. Confirm content has been approved; this is the final review surface.
+5. **`confirm --token <token>`** — **the only command that actually publishes.** Never run without the owner explicitly approving the previewed note.
+6. **`logout --confirm`, `cleanup --all --confirm`** — destructive; state cannot be recovered.
+
+Default when ambiguous: stop and ask. The agent_behavior line "do not perform external actions on behalf of owner" applies throughout this skill.
 
 ## Workflows
 
 - For QR login, SMS login, login-state recovery, or logout behavior, read [references/login.md](references/login.md).
 - For image upload, title/body/topics, note settings, preview, confirmation, publishing, and failure handling, read [references/image-text-upload.md](references/image-text-upload.md).
+- For CloakBrowser installation, pricing, license setup, and the `playwright-core` peer-dep pitfall, read [references/cloakbrowser-install.md](references/cloakbrowser-install.md).
+- For delivering the QR screenshot back to a human in a **headless / no-display** agent environment (sandbox, server, CI), read [references/headless-qr-login.md](references/headless-qr-login.md).
+- For ingesting image content the user shares via chat links (clawchat, external CDNs) before publishing, read [references/cloud-media-fetch.md](references/cloud-media-fetch.md).
 
 Do not improvise browser operations. Use the bundled scripts and follow the applicable reference workflow.
 

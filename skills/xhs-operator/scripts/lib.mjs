@@ -1,6 +1,6 @@
 import { createHash, randomBytes } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
-import { basename, join, resolve } from "node:path";
+import { basename, extname, join, resolve } from "node:path";
 
 export const HOME_DIR = resolve(process.env.XHS_HOME || join(process.env.HOME || "", "xiaohongshu"));
 export const AUTH_FILE = join(HOME_DIR, "auth", "state.json");
@@ -54,6 +54,34 @@ function nonEmptyString(value, name, max) {
   return value.trim();
 }
 
+const IMAGE_FORMATS = {
+  jpeg: { extension: ".jpg", mimeType: "image/jpeg" },
+  png: { extension: ".png", mimeType: "image/png" },
+  webp: { extension: ".webp", mimeType: "image/webp" },
+};
+
+export function detectImageFormat(path) {
+  const header = readFileSync(path).subarray(0, 12);
+  if (header.length >= 3 && header[0] === 0xff && header[1] === 0xd8 && header[2] === 0xff) return "jpeg";
+  if (header.length >= 8 && header.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))) return "png";
+  if (header.length >= 12 && header.toString("ascii", 0, 4) === "RIFF" && header.toString("ascii", 8, 12) === "WEBP") return "webp";
+  return null;
+}
+
+export function imageUploadPayload(path) {
+  const format = detectImageFormat(path);
+  if (!format) throw new Error(`无法识别图片真实格式: ${path}`);
+  const { extension, mimeType } = IMAGE_FORMATS[format];
+  const originalName = basename(path);
+  const currentExtension = extname(originalName);
+  const stem = currentExtension ? originalName.slice(0, -currentExtension.length) : originalName;
+  return {
+    name: `${stem}${extension}`,
+    mimeType,
+    buffer: readFileSync(path),
+  };
+}
+
 export function validateRequest(raw, now = new Date()) {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) throw new Error("请求必须是 JSON 对象");
   const images = raw.images;
@@ -63,6 +91,7 @@ export function validateRequest(raw, now = new Date()) {
   for (const image of images) {
     if (typeof image !== "string" || !existsSync(image)) throw new Error(`图片不存在: ${image}`);
     if (!/\.(?:jpe?g|png|webp)$/i.test(image)) throw new Error(`不支持的图片格式: ${image}`);
+    if (!detectImageFormat(image)) throw new Error(`无法识别图片真实格式: ${image}`);
   }
   const title = nonEmptyString(raw.title, "标题", 20);
   const body = typeof raw.body === "string" ? raw.body.trim() : "";
@@ -70,9 +99,10 @@ export function validateRequest(raw, now = new Date()) {
   if (!Array.isArray(topics) || topics.some((topic) => typeof topic !== "string" || !topic.trim())) {
     throw new Error("topics 必须是非空字符串数组");
   }
-  const topicSuffix = topics.map((topic) => `#${topic.trim().replace(/^#+/, "")}`).join(" ");
-  const content = [body, topicSuffix].filter(Boolean).join("\n\n");
-  if ([...content].length > 1000) throw new Error("正文和话题合计不能超过1000个字符");
+  const normalizedTopics = topics.map((topic) => topic.trim().replace(/^#+/, ""));
+  const topicSuffix = normalizedTopics.map((topic) => `#${topic}`).join(" ");
+  const combinedContent = [body, topicSuffix].filter(Boolean).join("\n\n");
+  if ([...combinedContent].length > 1000) throw new Error("正文和话题合计不能超过1000个字符");
 
   const settings = raw.settings ?? {};
   const visibility = settings.visibility ?? "公开可见";
@@ -96,8 +126,8 @@ export function validateRequest(raw, now = new Date()) {
     images: images.map((image) => resolve(image)),
     title,
     body,
-    topics: topics.map((topic) => topic.trim().replace(/^#+/, "")),
-    content,
+    topics: normalizedTopics,
+    content: body,
     settings: {
       original: settings.original === true,
       allowRemix: settings.allowRemix === true,

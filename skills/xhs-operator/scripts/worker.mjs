@@ -3,7 +3,7 @@ import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { launch } from "cloakbrowser";
 import {
-  AUTH_FILE, confirmationToken, publicSummary, readJson, redact, updateState, writeJson,
+  AUTH_FILE, confirmationToken, imageUploadPayload, publicSummary, readJson, redact, updateState, writeJson,
 } from "./lib.mjs";
 
 const RUN_DIR = process.env.XHS_RUN_DIR;
@@ -17,9 +17,9 @@ function arg(name) {
   return index >= 0 ? process.argv[index + 1] : undefined;
 }
 
-async function screenshot(page, name) {
+async function screenshot(page, name, options = {}) {
   const path = join(RUN_DIR, name);
-  await page.screenshot({ path, fullPage: false, animations: "disabled" });
+  await page.screenshot({ path, fullPage: false, animations: "disabled", ...options });
   return path;
 }
 
@@ -318,12 +318,13 @@ async function uploadImages(page, images) {
   const [first, ...remaining] = images;
   const input = page.locator('input[type="file"]').first();
   const firstUpload = uploads.snapshot();
+  const firstPayload = imageUploadPayload(first);
   if (await input.count()) {
-    await input.setInputFiles(first);
+    await input.setInputFiles(firstPayload);
   } else {
     const chooser = page.waitForEvent("filechooser");
     await page.getByText("上传图片", { exact: true }).click();
-    await (await chooser).setFiles(first);
+    await (await chooser).setFiles(firstPayload);
   }
   await page.getByText("图片编辑", { exact: true }).waitFor({ state: "visible", timeout: 120_000 });
   await uploads.waitForNext(firstUpload);
@@ -342,7 +343,7 @@ async function uploadImages(page, images) {
     if (!found) throw new Error("追加图片区域中未找到文件输入框");
     for (const [index, image] of remaining.entries()) {
       const previousUpload = uploads.snapshot();
-      await page.locator('input[data-xhs-image-add="true"]').setInputFiles(image);
+      await page.locator('input[data-xhs-image-add="true"]').setInputFiles(imageUploadPayload(image));
       const expected = `${index + 2}/18`;
       await page.waitForFunction((count) => document.body.innerText.includes(count), expected, { timeout: 60_000 });
       await uploads.waitForNext(previousUpload);
@@ -356,8 +357,19 @@ async function uploadImages(page, images) {
 }
 
 async function chooseVisibility(page, visibility) {
-  await page.getByText(/^(公开可见|仅自己可见|仅互关好友可见)$/).first().click();
+  const current = page.getByText(/^(公开可见|仅自己可见|仅互关好友可见)$/).first();
+  if ((await current.innerText()).trim() === visibility) return;
+  await current.click();
   await page.getByText(visibility, { exact: true }).last().click();
+  await page.waitForFunction((expected) => {
+    const labels = [...document.querySelectorAll("body *")].filter((element) =>
+      element.children.length === 0 && element.textContent?.trim() === expected,
+    );
+    return labels.some((element) => {
+      const box = element.getBoundingClientRect();
+      return box.width > 0 && box.height > 0;
+    });
+  }, visibility, { timeout: 5000 });
 }
 
 async function setCollection(page, collection) {
@@ -522,51 +534,195 @@ async function verifyPublishedInNoteManager(context, title) {
   }
 }
 
-async function prepare(page) {
-  const request = readJson(join(RUN_DIR, "request.json"));
+async function openPublishComposer(page) {
   await open(page, PUBLISH_URL);
   if (page.url().includes("/login")) throw new Error("AUTH_EXPIRED");
   if (await detectRisk(page)) throw new Error("RISK_VERIFICATION_REQUIRED");
-  await uploadImages(page, request.images);
+  updateState(RUN_DIR, { status: "publish_page_opened" });
+}
+
+async function fillNoteContent(page, request) {
   await fillTitle(page, request.title);
   const editor = page.locator('[contenteditable="true"]').first();
   if (await editor.count()) await editor.fill(request.content);
   else await page.getByPlaceholder(/输入正文/).fill(request.content);
   await verifyTitlePreview(page, request.title);
-  await setOriginalStatement(page, request.settings.original);
-  await setSwitch(page, "允许合拍", request.settings.allowRemix);
-  await setSwitch(page, "允许正文复制", request.settings.allowCopy);
-  await chooseVisibility(page, request.settings.visibility);
-  await setCollection(page, request.settings.collection);
-  await setLocation(page, request.settings.location);
-  await setSchedule(page, request.settings.scheduledAt);
+  updateState(RUN_DIR, { status: "content_filled" });
+}
+
+async function placeCaretAtEnd(editor) {
+  await editor.focus();
+  await editor.evaluate((element) => {
+    const target = element.lastElementChild || element;
+    const selection = window.getSelection();
+    const range = document.createRange();
+    range.selectNodeContents(target);
+    range.collapse(false);
+    selection.removeAllRanges();
+    selection.addRange(range);
+    document.dispatchEvent(new Event("selectionchange"));
+  });
+}
+
+async function selectedTopicNames(editor) {
+  return editor.locator('a.tiptap-topic[data-topic]').evaluateAll((nodes) => nodes.map((node) => {
+    try { return JSON.parse(node.getAttribute("data-topic") || "{}").name; }
+    catch { return null; }
+  }).filter(Boolean));
+}
+
+async function startTopicParagraph(page, editor) {
+  if (!(await editor.innerText()).trim()) return;
+  const blocksBefore = await editor.locator(":scope > *").count();
+  await placeCaretAtEnd(editor);
+  await editor.press("Enter");
+  await editor.press("Space");
+  await page.waitForTimeout(100);
+  const blocksAfter = await editor.locator(":scope > *").count();
+  if (blocksAfter <= blocksBefore) throw new Error("话题前未能创建新段落");
+}
+
+async function assertTopicsStartNewParagraph(editor, topics) {
+  const valid = await editor.locator('a.tiptap-topic[data-topic]').evaluateAll((nodes, expectedTopics) => {
+    const expected = new Set(expectedTopics);
+    const topicNodes = nodes.filter((node) => {
+      try { return expected.has(JSON.parse(node.getAttribute("data-topic") || "{}").name); }
+      catch { return false; }
+    });
+    if (topicNodes.length !== expected.size) return false;
+    const paragraph = topicNodes[0].parentElement;
+    if (!paragraph || paragraph.tagName !== "P" || paragraph !== paragraph.parentElement?.lastElementChild) return false;
+    if (topicNodes.some((node) => node.parentElement !== paragraph)) return false;
+    const withoutTopics = paragraph.cloneNode(true);
+    withoutTopics.querySelectorAll('a.tiptap-topic[data-topic]').forEach((node) => node.remove());
+    return withoutTopics.textContent.trim() === "";
+  }, topics);
+  if (!valid) throw new Error("普通话题没有从新段落开始");
+}
+
+async function addTopics(page, topics) {
+  if (!topics.length) return;
+  const editor = page.locator('[contenteditable="true"]').first();
+  const trigger = page.getByText(/^\s*话题\s*$/).first();
+  if (!(await trigger.count())) throw new Error("未找到普通话题入口");
+  await startTopicParagraph(page, editor);
+
+  for (const [index, topic] of topics.entries()) {
+    updateState(RUN_DIR, { status: "topic_adding", topicIndex: index, topic, topicStep: "trigger" });
+    if (index > 0) await placeCaretAtEnd(editor);
+    let selected = [];
+    for (let selectionAttempt = 0; selectionAttempt < 2; selectionAttempt += 1) {
+      if (index > 0 || selectionAttempt > 0) await placeCaretAtEnd(editor);
+      await trigger.click({ timeout: 10_000 });
+      updateState(RUN_DIR, { topicStep: selectionAttempt === 0 ? "typing" : "retry_typing" });
+      await page.keyboard.type(topic, { delay: 30 });
+      await page.waitForTimeout(800);
+
+      const marker = `xhs-topic-choice-${index}-${selectionAttempt}`;
+      const found = await page.locator("#creator-editor-topic-container .item").evaluateAll((items, { expected, markerName }) => {
+        const normalized = expected.trim().replace(/^#+/, "");
+        const candidates = items.map((item) => ({
+          item,
+          name: item.querySelector(".name")?.textContent?.trim().replace(/^#+/, "") || "",
+        }));
+        const selected = candidates.find(({ name }) => name === normalized)
+          || candidates.find(({ name }) => name.toLowerCase() === normalized.toLowerCase());
+        if (!selected) return false;
+        selected.item.setAttribute("data-xhs-topic-choice", markerName);
+        return true;
+      }, { expected: topic, markerName: marker });
+      if (!found) throw new Error(`未找到普通话题候选: ${topic}`);
+      updateState(RUN_DIR, { topicStep: selectionAttempt === 0 ? "selecting" : "retry_selecting" });
+      await page.locator(`[data-xhs-topic-choice="${marker}"]`).click({ timeout: 10_000 });
+      for (let entityAttempt = 0; entityAttempt < 20; entityAttempt += 1) {
+        selected = await selectedTopicNames(editor);
+        if (selected.includes(topic)) break;
+        await page.waitForTimeout(100);
+      }
+      if (selected.includes(topic)) break;
+      if (selectionAttempt === 0) {
+        const plainTopic = `#${topic}`;
+        const text = await editor.innerText();
+        if (!text.endsWith(plainTopic)) throw new Error(`首选失败后无法定位普通话题文本: ${topic}`);
+        await placeCaretAtEnd(editor);
+        for (const unused of [...plainTopic]) {
+          void unused;
+          await page.keyboard.press("Shift+ArrowLeft");
+        }
+        await page.keyboard.press("Backspace");
+        updateState(RUN_DIR, { topicStep: "retrying" });
+      }
+    }
+    if (!selected.includes(topic)) throw new Error(`话题未转换为实体: ${topic}`);
+    updateState(RUN_DIR, { topicStep: "selected" });
+  }
+  const selected = await selectedTopicNames(editor);
+  await assertTopicsStartNewParagraph(editor, topics);
+  updateState(RUN_DIR, {
+    status: "topics_added",
+    topicCount: topics.length,
+    verifiedTopicCount: selected.length,
+    topicIndex: null,
+    topic: null,
+    topicStep: null,
+  });
+}
+
+async function applyNoteSettings(page, settings) {
+  await setOriginalStatement(page, settings.original);
+  await setSwitch(page, "允许合拍", settings.allowRemix);
+  await setSwitch(page, "允许正文复制", settings.allowCopy);
+  await chooseVisibility(page, settings.visibility);
+  await setCollection(page, settings.collection);
+  await setLocation(page, settings.location);
+  await setSchedule(page, settings.scheduledAt);
+  updateState(RUN_DIR, { status: "settings_applied" });
+}
+
+async function createPublishPreview(page, request) {
   await assertImagesUploaded(page);
-  const preview = await screenshot(page, "preview.png");
+  await page.keyboard.press("Escape").catch(() => {});
+  await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
+  await page.waitForTimeout(500);
+  const preview = await screenshot(page, "preview.png", { fullPage: true });
   const account = await page.locator('[class*="user" i], [class*="account" i]').first().innerText().catch(() => "请从预览截图核对账号");
   const token = confirmationToken(readJson(join(RUN_DIR, "state.json")).runId, request);
   writeJson(join(RUN_DIR, "summary.json"), publicSummary(request));
+  const expiresAt = Date.now() + 15 * 60_000;
   updateState(RUN_DIR, {
     status: "awaiting_confirmation",
     confirmationToken: token,
     confirmationPhrase: `确认发布 ${token}`,
     preview,
     account: account.trim(),
-    expiresAt: new Date(Date.now() + 15 * 60_000).toISOString(),
+    expiresAt: new Date(expiresAt).toISOString(),
   });
-  const deadline = Date.now() + 15 * 60_000;
+  return { token, expiresAt };
+}
+
+async function waitForPublishConfirmation(page, { token, expiresAt }) {
   const controlPath = join(RUN_DIR, "control.json");
-  while (Date.now() < deadline && !existsSync(controlPath)) {
+  while (Date.now() < expiresAt && !existsSync(controlPath)) {
     await assertImagesUploaded(page);
     await sleep(500);
   }
   if (!existsSync(controlPath)) {
     const saved = await clickDraft(page);
     updateState(RUN_DIR, { status: "confirmation_expired", draftSaved: saved });
-    return;
+    return false;
   }
   const control = readJson(controlPath);
   rmSync(controlPath, { force: true });
+  if (control.action === "cancel") {
+    const saved = await clickDraft(page);
+    updateState(RUN_DIR, { status: "cancelled", draftSaved: saved });
+    return false;
+  }
   if (control.action !== "publish" || control.token !== token) throw new Error("确认令牌无效");
+  return true;
+}
+
+async function publishAndVerify(page, request) {
   await assertImagesUploaded(page);
   updateState(RUN_DIR, { status: "publishing", publishClicked: false });
   const responsePromise = page.waitForResponse(isPublishResponse, { timeout: 45_000 }).catch(() => null);
@@ -583,14 +739,26 @@ async function prepare(page) {
       verification: result.confirmed ? "publish_response" : "note_manager",
       successScreenshot: managerResult.screenshot || await screenshot(page, "published.png"),
     });
-  } else {
-    updateState(RUN_DIR, {
-      status: "publish_unknown",
-      error: result.error,
-      noteManagerScreenshot: managerResult.screenshot,
-      errorScreenshot: await screenshot(page, "publish-unknown.png"),
-    });
+    return;
   }
+  updateState(RUN_DIR, {
+    status: "publish_unknown",
+    error: result.error,
+    noteManagerScreenshot: managerResult.screenshot,
+    errorScreenshot: await screenshot(page, "publish-unknown.png"),
+  });
+}
+
+async function runPublishWorkflow(page) {
+  const request = readJson(join(RUN_DIR, "request.json"));
+  await openPublishComposer(page);
+  await uploadImages(page, request.images);
+  await fillNoteContent(page, request);
+  await addTopics(page, request.topics);
+  await applyNoteSettings(page, request.settings);
+  const confirmation = await createPublishPreview(page, request);
+  if (!await waitForPublishConfirmation(page, confirmation)) return;
+  await publishAndVerify(page, request);
 }
 
 let browser;
@@ -609,7 +777,7 @@ try {
   page = await context.newPage();
   if (process.argv[2] === "login") await runLogin(context, page);
   else {
-    await prepare(page);
+    await runPublishWorkflow(page);
     publishClicked = readJson(join(RUN_DIR, "state.json")).publishClicked === true;
   }
   await context.close();

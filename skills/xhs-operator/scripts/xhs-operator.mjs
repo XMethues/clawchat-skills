@@ -22,6 +22,7 @@ function usage() {
   sms-code --run <run-id> --code <code>
   prepare --request /absolute/request.json
   confirm --run <run-id> --token <token>
+  cancel --run <run-id>
   status [--run <run-id>]
   records
   cleanup [--all --confirm]
@@ -97,6 +98,14 @@ try {
     if (state.status !== "awaiting_confirmation") throw new Error(`当前状态不能发布: ${state.status}`);
     if (state.confirmationToken !== token) throw new Error("确认令牌不匹配或已失效");
     writeJson(join(runDir, "control.json"), { action: "publish", token, createdAt: new Date().toISOString() });
+    console.log(JSON.stringify({ accepted: true, runId }));
+  } else if (command === "cancel") {
+    const runId = value("run");
+    if (!runId) throw new Error("需要 --run");
+    const runDir = join(RUNS_DIR, runId);
+    const state = readJson(join(runDir, "state.json"));
+    if (state.status !== "awaiting_confirmation") throw new Error(`当前状态不能取消: ${state.status}`);
+    writeJson(join(runDir, "control.json"), { action: "cancel", createdAt: new Date().toISOString() });
     console.log(JSON.stringify({ accepted: true, runId }));
   } else if (command === "status") {
     const runId = value("run");

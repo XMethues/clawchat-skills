@@ -13,7 +13,23 @@ node ${HERMES_SKILL_DIR}/scripts/xhs-operator.mjs login --mode qr
 node ${HERMES_SKILL_DIR}/scripts/xhs-operator.mjs status --run <run-id>
 ```
 
-When status is `waiting_for_scan`, deliver `qrScreenshot` to the user and poll status after the user scans it.
+**`login` is asynchronous.** The wrapper `spawn()`s `worker.mjs` detached with stdio piped to `/dev/null`, then returns a `runId` immediately. A fast exit is normal, not a failure. `worker.log` inside the run directory is created but stays empty — that is by design, not a hang. Real progress only appears via `status`.
+
+Polling cadence:
+- **First poll 10–30 s after launch.** The wrapper may be downloading the ~200 MB stealth Chromium binary on first use (free build); a cold cache can take a minute.
+- **Subsequent polls every 5–10 s** once `status` flips to `starting` and Chromium is being launched.
+- **Stop polling once `status` becomes `waiting_for_scan`** and deliver the QR screenshot.
+
+Terminal states to expect:
+
+| status | meaning | action |
+| --- | --- | --- |
+| `waiting_for_scan` | QR captured; awaiting mobile app scan | deliver `qrScreenshot` path, continue polling |
+| `logged_in` | mobile scan succeeded, session persisted | done for this login; do not publish anything unsolicited |
+| `failed` | wrapper error (commonly missing `playwright-core` peer dep) | read `error`, do not retry blindly |
+| `risk_verification_required` | Xiaohongshu served a captcha / slider | stop. Never retry, bypass, or use a CAPTCHA service. Surface to user. |
+
+QR screenshot location: `<RUNS_DIR>/<run-id>/qr.png` (same path written into `state.json` as `qrScreenshot`).
 
 ### SMS login
 

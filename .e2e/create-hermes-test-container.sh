@@ -126,7 +126,7 @@ run_args=(
 # immediately sees local changes.
 if [ "$no_skills" = false ]; then
   for skill_dir in "${skill_dirs[@]}"; do
-    relative_path="${skill_dir#"$ROOT/"}"
+    relative_path="${skill_dir#"$ROOT/skills/"}"
     container_path="/opt/data/skills/$relative_path"
     echo "Skill under test: $skill_dir -> $container_path"
     run_args+=( -v "$skill_dir:$container_path" )
