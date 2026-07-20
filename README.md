@@ -98,10 +98,10 @@ hermes skills install clawling/clawchat-skills/create-liveware-scripts
 
 ### [CREATE HERMES BOOT HOOK](skills/create-hermes-boot-hook/)
 
-Creates or updates customized Hermes startup checklists and
-`gateway:startup` hooks through a one-question-at-a-time requirements
-interview. It supports optional Liveware lifecycle actions, one-shot agent
-checks, deterministic delivery, silence handling, and validation.
+Designs, audits, or updates three Hermes Gateway startup modes: a `BOOT.md`
+agent checklist, a deterministic `gateway:startup` Hook, or a hybrid of both.
+`BOOT.md` stays platform-neutral; optional report delivery requires the selected
+platform's configured home binding to resolve to one existing Hermes Session.
 
 ```bash
 hermes skills install clawling/clawchat-skills/create-hermes-boot-hook

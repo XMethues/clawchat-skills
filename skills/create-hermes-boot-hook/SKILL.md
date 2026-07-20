@@ -1,74 +1,87 @@
 ---
 name: create-hermes-boot-hook
-description: Create or update customized Hermes Agent BOOT.md startup checklists and gateway:startup hooks, including HOOK.yaml and handler.py, through a one-question-at-a-time requirements interview. Supports user-chosen Liveware setup/start policies, one-shot agent execution, optional deterministic delivery, silence handling, validation, and Session-mirroring boundaries. Use when a user wants Liveware activation, checks, reports, alerts, maintenance, or other work whenever the Hermes Gateway starts or restarts.
-metadata:
-  hermes:
-    tags: [Automation, Hermes, Hooks, Liveware]
+description: Design, create, audit, or update a Hermes Agent gateway:startup Hook and, when needed, its BOOT.md agent checklist. Use when a user wants a one-shot startup checklist, deterministic boot actions such as Liveware setup or start, Session-aware delivery to any configured chat platform, or repair of the active profile's boot-md Hook.
 ---
 
 # Create Hermes BOOT Hook
 
-Create a Hermes startup workflow from the user's confirmed requirements. Never install a generic template or impose a fixed Liveware lifecycle policy.
+Build the smallest safe startup workflow that satisfies the user's request. Do not force an agent turn, Liveware lifecycle action, or notification into every Hook.
 
-## Required reference
+## Read the reference
 
-Read [references/hermes-boot-hooks.md](references/hermes-boot-hooks.md) completely before inspecting or changing runtime files. Follow its Hermes architecture and decision boundaries.
+Read [references/hermes-boot-hooks.md](references/hermes-boot-hooks.md) completely before inspecting or changing Hermes runtime files. Recheck installed Hermes interfaces when the reference says they are version-sensitive.
 
-## Discover facts first
+## Choose the execution mode
 
-Inspect facts instead of asking the user to supply them:
+Classify the requested outcome before discussing implementation:
 
-- the Hermes home, configuration, enabled platforms, and configured home channels;
+- **Agent checklist**: use `BOOT.md` when startup work requires tools, interpretation, summarization, or a conditional report.
+- **Deterministic Hook**: use `handler.py` without an agent when startup work is a known command, service action, health check, or fixed notification.
+- **Hybrid**: run bounded deterministic actions first, then pass only their redacted status to one agent turn.
+
+Recommend the deterministic mode for work that does not need model judgment. Create `BOOT.md` only for the agent and hybrid modes.
+
+Treat Audit as read-only. Inspect and validate the selected mode, report findings, and do not enter the implementation phase unless the user asks for changes.
+
+## Discover before asking
+
+Inspect read-only facts first:
+
+- the effective Hermes home and active profile; use Hermes' installed home resolver when available instead of assuming `~/.hermes`;
+- the installed Hermes version, official Hook schema, runtime imports, and handler signature;
 - existing `BOOT.md`, `hooks/boot-md/HOOK.yaml`, and `hooks/boot-md/handler.py`;
-- requested Liveware target skills, their `SKILL.md`, `liveware/scripts/setup.py`, `start.sh`, state contract, local service lifecycle, readiness check, and logging;
-- Liveware CLI availability, local state, and read-only app/service status where safe;
-- supported Hermes imports and Hook schema in the installed version.
+- the exact task inputs, commands, paths, readiness signals, ownership, and repeatability;
+- for Liveware, the target skill and its actual `setup.py`, `start.sh`, state contract, service lifecycle, readiness check, timeout behavior, and logs;
+- enabled gateway platforms, their home bindings, and existing Hermes Sessions only when delivery is requested; inspect the emitted startup context and the installed home-binding return type instead of assuming either interface.
 
-Do not perform setup, login, app creation, registration, process startup, gateway restart, or external delivery during discovery.
+Do not run setup, login, registration, service start, gateway restart, or external delivery during discovery.
 
-## Interview decisions one at a time
+## Resolve the startup contract
 
-Interview the user until both sides share an explicit startup contract. Walk the decision tree in dependency order. Ask exactly one question per message and wait for the answer. For every question, state the relevant discovered facts and give a recommended answer with a brief reason. Do not ask for a fact that the environment can establish.
+Ask only questions whose answers materially change the generated files. Ask one question per message, include the relevant discovered facts, and recommend an answer with a short reason.
 
-Resolve only applicable branches:
+Resolve applicable decisions in this order:
 
-1. Exact startup outcomes: agent work, Liveware targets, or both.
-2. For each Liveware target, behavior when it is not prepared: fail and report, run existing `setup.py` if needed, run setup on every boot, or another user-specified policy.
-3. If setup may run, the precise trigger, permission for its external changes, bounded retry policy, and behavior when ClawChat activation or credentials are unavailable.
-4. Start ordering, readiness, timeout, idempotency, and failure behavior.
-5. BOOT agent task, evidence, tools, limits, report format, and silence conditions.
-6. Notification policy: no delivery, explicit `platform:target`, or a configured platform home channel; plus the accepted Session-continuity limitation.
+1. Desired startup outcome and execution mode.
+2. Exact deterministic actions, ordering, readiness, timeout, idempotency, and failure behavior.
+3. Agent task, allowed tools, evidence, iteration limit, report shape, and exact silence token.
+4. Liveware policy: require prepared state, setup if a verified predicate fails, or setup on every boot; include external effects and retry cap.
+5. Output policy: log only, no output, or deliver through the configured home binding after it resolves to one existing Session.
+6. Static verification and any separately approved live test.
 
-When all branches are resolved, summarize the complete contract and ask one final question: whether shared understanding has been reached and file generation may begin. Do not create or modify runtime files before the user explicitly confirms.
+Do not repeat questions already answered by the request or environment. When an interview was necessary, restate the resolved contract before writing. A direct request to create or update files is sufficient authorization to write the confirmed design; it is not authorization to execute its startup actions.
 
-## Generate the confirmed design
+## Implement the confirmed design
 
-1. Preserve unrelated behavior and existing user customizations.
-2. Generate or update exactly these runtime artifacts unless the user explicitly requests more:
-   - `BOOT.md`: the customized one-shot agent checklist and report contract;
-   - `hooks/boot-md/HOOK.yaml`: the `gateway:startup` manifest;
-   - `hooks/boot-md/handler.py`: non-blocking deterministic orchestration, optional Liveware lifecycle actions, agent execution, silence filtering, delivery, and logging.
-3. Keep user policy in clearly named handler configuration and `BOOT.md`; keep Hermes execution mechanics stable.
-4. For Liveware, call only the inspected target skill's existing `setup.py` and `start.sh` according to the confirmed policy. Do not reproduce their login, app, tunnel, or server logic in the Hook.
-5. Use fixed argument arrays without `shell=True`, bounded timeouts and retries, credential-redacted bounded output, and explicit success/failure handling.
-6. Let the handler own deterministic Liveware actions and final delivery. The one-shot agent performs reasoning/checks and returns a report; it must not start Liveware or send the report itself.
+Preserve unrelated customizations and keep policy separate from mechanics.
 
-## Validate
+- For Create or Update, always create or update `hooks/boot-md/HOOK.yaml` and its sibling `handler.py`.
+- Add or update `BOOT.md` only when an agent turn is part of the design.
+- Subscribe only to `gateway:startup`.
+- Resolve the active Hermes home with the installed Hermes helper and propagate it to child processes.
+- Make `handle(event_type, context)` return promptly; place all meaningful work in one guarded daemon worker.
+- Use fixed argument arrays, `shell=False`, bounded timeouts and retries, bounded redacted output, and explicit success/failure results.
+- Keep deterministic actions in the handler. Let the agent reason and produce a report; do not let it start Liveware or send the report.
+- Invoke only inspected Liveware scripts. Do not copy their login, app, tunnel, server, or readiness logic into the Hook.
+- Keep `BOOT.md` platform-neutral unless the startup task itself is platform-specific. Put platform and Session routing only in the handler.
+- Add delivery only when requested. Treat startup `context["platforms"]` as availability information, not a destination, and do not assume `session_store` is injected.
+- Require a selected platform, its configured home binding, and one exact existing Session before delivery. Never ask the user for raw routing coordinates or persist them in generated files.
+- Treat the home binding as a version-sensitive object. Resolve the Session from its internal origin and thread fields through the installed read-only lookup; never stringify the whole object or log those fields.
+- Do not choose the most recently updated Session, manufacture a Session at startup, or fall back to another platform. Fail closed when the home binding or Session is missing or ambiguous.
+- When an agent report exists only to be delivered, finish the routing preflight before invoking the model. Distinguish transport success from successful mirroring into the pre-resolved Session.
+- After confirmed mirroring, document that the next inbound message with the same full origin reuses that active Session unless Hermes applies an explicit or policy reset.
+- Never mutate Hermes Session files or databases directly and never reach through private gateway-runner state to manufacture continuity.
 
-- Parse `HOOK.yaml` and confirm its event is exactly `gateway:startup` with a sibling `handler.py`.
-- Compile `handler.py` with `python3 -m py_compile`.
-- Confirm `handle(event_type, context)` returns promptly by starting a daemon worker.
-- Confirm `_resolve_gateway_model()`, `_resolve_runtime_agent_kwargs()`, bounded agent execution, and exact whole-response silence tokens.
-- Confirm generated Liveware branches exactly match the confirmed setup/start/retry policy and cannot loop without bounds.
-- Confirm any delivery uses in-process `send_message_tool`, parses its JSON result, and logs delivery and `mirrored` separately.
-- Scan for TODOs, example identifiers, placeholder targets, embedded secrets, `shell=True`, private gateway globals, and Session-store mutation.
+## Validate without triggering startup effects
 
-Explain the resulting behavior and Session limitation. Do not execute generated setup/start actions, restart the gateway, or send a real external message without separate user approval.
+Perform every applicable static check:
 
-## Fixed Hermes boundaries
+1. Parse `HOOK.yaml`; require exactly `gateway:startup` and a sibling `handler.py`.
+2. Compile `handler.py` without leaving bytecode in the runtime directory.
+3. Import it with external actions stubbed and confirm `handle()` returns promptly and suppresses duplicate workers.
+4. Confirm the active-home resolver, runtime model resolution, iteration bound, timeout/retry bounds, and whole-response silence comparison.
+5. Confirm each deterministic branch matches the resolved policy and cannot loop indefinitely.
+6. Confirm delivery cannot run without a configured home binding and one exact Session, extracts the installed home object's fields instead of stringifying it, contains no embedded routing coordinates, parses the installed interface's result, and logs delivery and mirroring separately.
+7. Scan for placeholders, TODOs, secrets, embedded destinations, recency-based Session selection, startup Session creation, unbounded output, `shell=True`, hard-coded default-home paths, private gateway globals, and direct Session mutation.
 
-- `gateway:startup` supplies `platforms`; it does not inject a current chat, gateway runner, or Session store.
-- Use a daemon background worker so startup is never blocked by Liveware, an agent turn, or delivery.
-- Never use `_gateway_runner_ref`, edit `sessions.json` or SQLite, or change `mirror_to_session()` to create sessions.
-- Mirroring works only when the destination Session already exists. A startup Hook can run before first activation but cannot guarantee first-contact conversational continuity.
-- Keep this skill to `SKILL.md` and its reference; do not add UI metadata, copied runtime templates, scripts, or assets.
+Treat setup, start, login, registration, gateway restart, and real delivery as live tests. Run each only with separate explicit approval. For a delivery E2E, establish the intended Session with one normal inbound message before installing and starting the Hook, then verify the visible message and its mirror in that same pre-existing Session. Report the selected mode, changed files, static evidence, unperformed live tests, and any delivery-continuity limitation.

@@ -84,8 +84,10 @@ hermes skills install clawling/clawchat-skills/create-liveware-scripts
 
 ### [CREATE HERMES BOOT HOOK](skills/create-hermes-boot-hook/)
 
-通过逐项需求访谈创建或更新定制的 Hermes 启动检查清单和
-`gateway:startup` Hook。支持可选的 Liveware 生命周期操作、一次性智能体检查、确定性消息投递、静默处理和验证。
+设计、审计或更新三种 Hermes Gateway 启动模式：`BOOT.md` 智能体检查、
+确定性的 `gateway:startup` Hook，或两者结合的混合模式。仅在用户需要时加入
+Liveware 生命周期操作；`BOOT.md` 保持平台无关，可选报告投递必须通过所选
+平台配置的 Home 精确解析到一个既有 Hermes Session。
 
 ```bash
 hermes skills install clawling/clawchat-skills/create-hermes-boot-hook
