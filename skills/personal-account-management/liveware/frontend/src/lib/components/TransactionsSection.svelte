@@ -6,6 +6,7 @@
   import { Button } from "$lib/components/ui/button";
   import * as Card from "$lib/components/ui/card";
   import { Input } from "$lib/components/ui/input";
+  import * as Select from "$lib/components/ui/select/index.js";
   import { formatDate, formatInteger, formatMoneyWithCode } from "$lib/format";
   import type { TranslationKey } from "$lib/i18n";
   import { selectTransactions } from "$lib/selectors";
@@ -43,6 +44,19 @@
 
   const accounts = $derived(book.account_snapshot.accounts);
   const accountNames = $derived(new Map(accounts.map((account) => [account.id, account.name])));
+  const allAccountsValue = "__all_accounts__";
+  const accountItems = $derived([
+    { value: allAccountsValue, label: t("allAccounts") },
+    ...(accountFilter && !accountNames.has(accountFilter)
+      ? [{ value: accountFilter, label: t("unavailableAccount") }]
+      : []),
+    ...accounts.map((account) => ({ value: account.id, label: account.name })),
+  ]);
+  const selectedAccountValue = $derived(accountFilter || allAccountsValue);
+  const selectedAccountLabel = $derived(
+    accountItems.find((account) => account.value === selectedAccountValue)?.label
+      ?? t("allAccounts"),
+  );
   const transactionPage = $derived(selectTransactions(book, {
     search,
     kind: kindFilter,
@@ -81,40 +95,51 @@
   }
 </script>
 
-<section class="activity-section" aria-labelledby="transactions-title">
-  <div class="activity-heading">
+<section class="grid gap-4" aria-labelledby="transactions-title">
+  <div class="flex items-end justify-between gap-4 max-[45rem]:flex-col max-[45rem]:items-start">
     <div>
-      <p class="module-eyebrow">{formatInteger(transactionPage.total_items, language)} {t("records")}</p>
-      <h2 id="transactions-title">{t("transactionsTitle")}</h2>
-      <p>{t("transactionsDescription")}</p>
+      <p class="mb-0.5 font-mono text-xs font-semibold uppercase tracking-widest text-muted-foreground">{formatInteger(transactionPage.total_items, language)} {t("records")}</p>
+      <h2 id="transactions-title" class="text-3xl font-semibold tracking-tight sm:text-4xl">{t("transactionsTitle")}</h2>
+      <p class="mt-1 max-w-2xl text-muted-foreground">{t("transactionsDescription")}</p>
     </div>
   </div>
 
   <Card.Root>
-    <Card.Content class="activity-controls">
-      <label class="search-control">
+    <Card.Content class="grid items-end gap-3 lg:grid-cols-[minmax(16rem,1fr)_minmax(10rem,0.35fr)_auto]">
+      <label class="relative block">
         <span class="sr-only">{t("searchTransactions")}</span>
-        <SearchIcon aria-hidden="true" />
+        <SearchIcon class="pointer-events-none absolute top-1/2 left-3 z-10 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
         <Input
+          class="pl-9"
           type="search"
           value={search}
           placeholder={t("searchPlaceholder")}
           oninput={(event) => onSearch(event.currentTarget.value)}
         />
       </label>
-      <label class="account-filter-control">
-        <span>{t("account")}</span>
-        <select value={accountFilter} onchange={(event) => onAccountFilter(event.currentTarget.value)}>
-          <option value="">{t("allAccounts")}</option>
-          {#if accountFilter && !accountNames.has(accountFilter)}
-            <option value={accountFilter}>{t("unavailableAccount")}</option>
-          {/if}
-          {#each accounts as account (account.id)}
-            <option value={account.id}>{account.name}</option>
-          {/each}
-        </select>
-      </label>
-      <fieldset class="kind-filters">
+      <div class="grid gap-1">
+        <span class="font-mono text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t("account")}</span>
+        <Select.Root
+          type="single"
+          value={selectedAccountValue}
+          items={accountItems}
+          onValueChange={(value) => {
+            if (value) onAccountFilter(value === allAccountsValue ? "" : value);
+          }}
+        >
+          <Select.Trigger class="w-full" aria-label={t("account")}>
+            {selectedAccountLabel}
+          </Select.Trigger>
+          <Select.Content>
+            {#each accountItems as account (account.value)}
+              <Select.Item value={account.value} label={account.label}>
+                {account.label}
+              </Select.Item>
+            {/each}
+          </Select.Content>
+        </Select.Root>
+      </div>
+      <fieldset class="no-scrollbar m-0 flex min-w-0 gap-1 overflow-x-auto border-0 pb-px">
         <legend class="sr-only">{t("transactionTypeFilter")}</legend>
         {#each kinds as kind (kind.value)}
           <Button
@@ -132,27 +157,29 @@
 
   {#if transactionPage.total_items === 0}
     <Card.Root>
-      <Card.Content class="activity-empty">
-        <h3>{transactionPage.source_items === 0 ? t("noTransactions") : t("noMatchingTransactions")}</h3>
-        <p>{transactionPage.source_items === 0 ? t("noTransactionsDescription") : t("noMatchingDescription")}</p>
+      <Card.Content class="grid min-h-56 place-items-center text-center">
+        <div>
+          <h3 class="text-xl font-semibold tracking-tight">{transactionPage.source_items === 0 ? t("noTransactions") : t("noMatchingTransactions")}</h3>
+          <p class="mx-auto mt-2 max-w-xl text-muted-foreground">{transactionPage.source_items === 0 ? t("noTransactionsDescription") : t("noMatchingDescription")}</p>
+        </div>
       </Card.Content>
     </Card.Root>
   {:else}
-    <div class="transaction-list">
+    <div class="overflow-hidden rounded-lg border bg-card">
       {#each transactionPage.items as transaction (transaction.id)}
-        <article class="transaction-row" data-kind={transaction.kind}>
-          <div class="transaction-date">
-            <span>{formatDate(transaction.date, language)}</span>
-            <small>{kindLabel(transaction)}</small>
+        <article class="grid grid-cols-[8.5rem_minmax(0,1fr)_minmax(9rem,auto)] items-center gap-4 border-b p-4 last:border-b-0 max-[45rem]:grid-cols-[1fr_auto]" data-kind={transaction.kind}>
+          <div class="grid min-w-0 max-[45rem]:col-span-full max-[45rem]:grid-cols-[auto_auto] max-[45rem]:justify-between">
+            <span class="font-mono text-xs">{formatDate(transaction.date, language)}</span>
+            <small class="text-xs text-muted-foreground">{kindLabel(transaction)}</small>
           </div>
-          <div class="transaction-copy">
-            <div class="transaction-title-line">
-              <strong>{transaction.title}</strong>
+          <div class="grid min-w-0">
+            <div class="flex min-w-0 items-center gap-2">
+              <strong class="break-words">{transaction.title}</strong>
               {#if transaction.needs_review}
                 <Badge variant="outline">{t("needsReview")}</Badge>
               {/if}
             </div>
-            <p>
+            <p class="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground [&>span]:min-w-0 [&>span]:break-words">
               {#if transaction.merchant}<span>{transaction.merchant}</span>{/if}
               <span>{transaction.category}</span>
               {#if transaction.kind === "transfer"}
@@ -162,19 +189,19 @@
               {/if}
             </p>
           </div>
-          <div class="transaction-amount">
-            <strong>{signedAmount(transaction)}</strong>
+          <div class="grid min-w-0 max-w-36 justify-items-end gap-0.5 text-right">
+            <strong class="break-words font-mono text-sm" class:text-primary={transaction.kind === "income"} class:text-destructive={transaction.kind === "expense"}>{signedAmount(transaction)}</strong>
             {#if typeof transaction.base_amount_minor === "number"
               && transaction.base_currency
               && transaction.base_currency !== transaction.currency}
-              <span>{t("recordedBase")}: {formatMoneyWithCode(transaction.base_amount_minor, transaction.base_currency, language)}</span>
+              <span class="max-w-full break-words text-xs text-muted-foreground">{t("recordedBase")}: {formatMoneyWithCode(transaction.base_amount_minor, transaction.base_currency, language)}</span>
             {/if}
           </div>
         </article>
       {/each}
     </div>
 
-    <nav class="pagination" aria-label={t("transactionPages")}>
+    <nav class="flex items-center justify-center gap-3" aria-label={t("transactionPages")}>
       <Button
         variant="outline"
         size="icon"
@@ -184,7 +211,7 @@
       >
         <ArrowLeftIcon aria-hidden="true" />
       </Button>
-      <span>
+      <span class="min-w-24 text-center font-mono text-xs text-muted-foreground">
         {t("page")} {transactionPage.page} / {transactionPage.total_pages}
       </span>
       <Button

@@ -161,10 +161,23 @@ export interface AnalysisStatus {
 }
 
 export interface AnalysisStartResponse {
-  upstream_status: number;
-  report_url: string;
-  agent_message: string;
+  accepted: boolean;
   analysis: AnalysisStatus;
+}
+
+export interface ReportSummary {
+  month: string;
+  file_name: string;
+  size: number;
+  modified_at: number;
+}
+
+export interface ReportIndex {
+  reports: ReportSummary[];
+}
+
+export interface ReportDocument extends ReportSummary {
+  html: string;
 }
 
 export interface ControllerFilters {

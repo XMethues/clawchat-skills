@@ -37,30 +37,30 @@
   }
 </script>
 
-<section class="activity-section" aria-labelledby="subscriptions-title">
-  <div class="activity-heading">
+<section class="grid gap-4" aria-labelledby="subscriptions-title">
+  <div class="flex items-end justify-between gap-4 max-[45rem]:flex-col max-[45rem]:items-start">
     <div>
-      <p class="module-eyebrow">{formatInteger(summary.rows.length, language)} {t("subscriptionsLower")}</p>
-      <h2 id="subscriptions-title">{t("subscriptionsTitle")}</h2>
-      <p>{t("subscriptionsDescription")}</p>
+      <p class="mb-0.5 font-mono text-xs font-semibold uppercase tracking-widest text-muted-foreground">{formatInteger(summary.rows.length, language)} {t("subscriptionsLower")}</p>
+      <h2 id="subscriptions-title" class="text-3xl font-semibold tracking-tight sm:text-4xl">{t("subscriptionsTitle")}</h2>
+      <p class="mt-1 max-w-2xl text-muted-foreground">{t("subscriptionsDescription")}</p>
     </div>
   </div>
 
   {#if summary.totals.length > 0}
-    <div class="subscription-totals" aria-label={t("selectedMonthTotals")}>
+    <div class="grid grid-cols-[repeat(auto-fit,minmax(13rem,1fr))] gap-3" aria-label={t("selectedMonthTotals")}>
       {#each summary.totals as total (total.currency)}
         <Card.Root size="sm">
-          <Card.Content>
-            <span>{t("selectedMonthTotals")}</span>
-            <div class="subscription-total-pair">
-              <span>{t("subscriptionExpected")}</span>
-              <strong>{formatMoneyWithCode(total.expected_minor, total.currency, language)}</strong>
+          <Card.Content class="grid gap-1">
+            <span class="text-xs text-muted-foreground">{t("selectedMonthTotals")}</span>
+            <div class="grid grid-cols-[1fr_auto] items-baseline gap-2">
+              <span class="text-xs text-muted-foreground">{t("subscriptionExpected")}</span>
+              <strong class="text-right text-base font-semibold tracking-tight break-words">{formatMoneyWithCode(total.expected_minor, total.currency, language)}</strong>
             </div>
-            <div class="subscription-total-pair">
-              <span>{t("subscriptionObserved")}</span>
-              <strong>{formatMoneyWithCode(total.observed_minor, total.currency, language)}</strong>
+            <div class="grid grid-cols-[1fr_auto] items-baseline gap-2">
+              <span class="text-xs text-muted-foreground">{t("subscriptionObserved")}</span>
+              <strong class="text-right text-base font-semibold tracking-tight break-words">{formatMoneyWithCode(total.observed_minor, total.currency, language)}</strong>
             </div>
-            <small>{total.subscription_count} {t("subscriptionsLower")}</small>
+            <small class="text-xs text-muted-foreground">{total.subscription_count} {t("subscriptionsLower")}</small>
           </Card.Content>
         </Card.Root>
       {/each}
@@ -69,20 +69,22 @@
 
   {#if summary.rows.length === 0}
     <Card.Root>
-      <Card.Content class="activity-empty">
-        <h3>{t("noSubscriptions")}</h3>
-        <p>{t("noSubscriptionsDescription")}</p>
+      <Card.Content class="grid min-h-56 place-items-center text-center">
+        <div>
+          <h3 class="text-xl font-semibold tracking-tight">{t("noSubscriptions")}</h3>
+          <p class="mx-auto mt-2 max-w-xl text-muted-foreground">{t("noSubscriptionsDescription")}</p>
+        </div>
       </Card.Content>
     </Card.Root>
   {:else}
-    <div class="subscription-grid">
+    <div class="grid gap-3">
       {#each summary.rows as subscription (subscription.id)}
-        <Card.Root class="subscription-card" data-status={subscription.status}>
+        <Card.Root class="min-h-80 w-full data-[status=mismatch]:border-destructive/50" data-status={subscription.status}>
           <Card.Header>
-            <div class="subscription-title-row">
-              <div>
-                <Card.Title>{subscription.name}</Card.Title>
-                <Card.Description>
+            <div class="flex min-w-0 items-start justify-between gap-3">
+              <div class="min-w-0">
+                <Card.Title class="break-words">{subscription.name}</Card.Title>
+                <Card.Description class="break-words">
                   {subscription.description || t(cadenceKey(subscription.cadence))}
                 </Card.Description>
               </div>
@@ -91,40 +93,40 @@
               </Badge>
             </div>
           </Card.Header>
-          <Card.Content class="subscription-content">
-            <strong class="subscription-amount">
+          <Card.Content class="flex flex-1 flex-col gap-4">
+            <strong class="text-3xl font-semibold tracking-tighter break-words sm:text-4xl">
               {formatMoneyWithCode(subscription.amount_minor, subscription.currency, language)}
             </strong>
-            <dl>
-              <div>
-                <dt>{t("cadence")}</dt>
-                <dd>{t(cadenceKey(subscription.cadence))}</dd>
+            <dl class="m-0 grid gap-2">
+              <div class="grid grid-cols-[minmax(7rem,0.45fr)_minmax(0,1fr)] gap-3 border-b pb-2 max-[45rem]:grid-cols-1 max-[45rem]:gap-0.5">
+                <dt class="text-xs text-muted-foreground">{t("cadence")}</dt>
+                <dd class="m-0 text-right text-xs font-semibold break-words max-[45rem]:text-left">{t(cadenceKey(subscription.cadence))}</dd>
               </div>
-              <div>
-                <dt>{t("nextBilling")}</dt>
-                <dd>{formatDate(subscription.next_billing_date, language)}</dd>
+              <div class="grid grid-cols-[minmax(7rem,0.45fr)_minmax(0,1fr)] gap-3 border-b pb-2 max-[45rem]:grid-cols-1 max-[45rem]:gap-0.5">
+                <dt class="text-xs text-muted-foreground">{t("nextBilling")}</dt>
+                <dd class="m-0 text-right text-xs font-semibold break-words max-[45rem]:text-left">{formatDate(subscription.next_billing_date, language)}</dd>
               </div>
-              <div>
-                <dt>{t("paymentAccount")}</dt>
-                <dd>{accountNames.get(subscription.payment_account_id) ?? t("unknownAccount")}</dd>
+              <div class="grid grid-cols-[minmax(7rem,0.45fr)_minmax(0,1fr)] gap-3 border-b pb-2 max-[45rem]:grid-cols-1 max-[45rem]:gap-0.5">
+                <dt class="text-xs text-muted-foreground">{t("paymentAccount")}</dt>
+                <dd class="m-0 text-right text-xs font-semibold break-words max-[45rem]:text-left">{accountNames.get(subscription.payment_account_id) ?? t("unknownAccount")}</dd>
               </div>
             </dl>
-            <div class="subscription-observation">
-              <CalendarClockIcon aria-hidden="true" />
+            <div class="mt-auto flex items-start gap-3 rounded-md bg-muted p-3">
+              <CalendarClockIcon class="size-4 shrink-0 text-primary" aria-hidden="true" />
               <div>
                 {#if subscription.expected_dates.length > 0}
-                  <p>{t("expectedThisMonth")}</p>
-                  <span>{subscription.expected_dates.map((date) => formatDate(date, language)).join(" · ")}</span>
+                  <p class="text-xs font-semibold">{t("expectedThisMonth")}</p>
+                  <span class="block text-xs text-muted-foreground">{subscription.expected_dates.map((date) => formatDate(date, language)).join(" · ")}</span>
                 {:else}
-                  <p>{t("notExpectedThisMonth")}</p>
+                  <p class="text-xs font-semibold">{t("notExpectedThisMonth")}</p>
                 {/if}
                 {#if subscription.observed_count > 0}
-                  <small>{subscription.observed_count} {t("observedCharges")}</small>
-                  <ul class="subscription-observed-list">
+                  <small class="block text-xs text-muted-foreground">{subscription.observed_count} {t("observedCharges")}</small>
+                  <ul class="mt-1 grid list-none gap-1 p-0">
                     {#each subscription.observed_charges as charge (charge.id)}
-                      <li>
-                        <span>{formatDate(charge.date, language)}</span>
-                        <strong>{formatMoneyWithCode(charge.amount_minor, charge.currency, language)}</strong>
+                      <li class="flex min-w-0 items-baseline justify-between gap-3">
+                        <span class="min-w-0 text-xs text-muted-foreground break-words">{formatDate(charge.date, language)}</span>
+                        <strong class="min-w-0 text-right font-mono text-xs break-words">{formatMoneyWithCode(charge.amount_minor, charge.currency, language)}</strong>
                       </li>
                     {/each}
                   </ul>

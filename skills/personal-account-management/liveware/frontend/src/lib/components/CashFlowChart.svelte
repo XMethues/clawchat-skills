@@ -32,34 +32,35 @@
   }
 </script>
 
-<div class="cashflow-chart">
-  <div class="chart-heading">
+<div class="min-w-0">
+  <div class="flex items-end justify-between gap-4 px-0 pt-2 pb-4 max-[45rem]:flex-col max-[45rem]:items-start">
     <div>
-      <p class="module-eyebrow">{t("naturalWeeks")}</p>
-      <h3>{t("cashFlowChart")}</h3>
+      <p class="mb-0.5 font-mono text-xs font-semibold uppercase tracking-widest text-muted-foreground">{t("naturalWeeks")}</p>
+      <h3 class="text-xl font-semibold tracking-tight">{t("cashFlowChart")}</h3>
     </div>
-    <div class="chart-legend" aria-label={t("chartLegend")}>
-      <span><i class="legend-income"></i>{t("income")}</span>
-      <span><i class="legend-expense"></i>{t("expense")}</span>
+    <div class="flex gap-3 text-xs text-muted-foreground" aria-label={t("chartLegend")}>
+      <span class="inline-flex items-center gap-1.5"><i class="size-2.5 rounded-sm bg-primary"></i>{t("income")}</span>
+      <span class="inline-flex items-center gap-1.5"><i class="size-2.5 rounded-sm bg-destructive/70"></i>{t("expense")}</span>
     </div>
   </div>
 
   {#if hasActivity}
-    <div class="chart-scroll">
+    <div class="overflow-x-auto [scrollbar-width:thin]">
       <svg
+        class="block h-auto w-full min-w-[38rem]"
         viewBox={`0 0 ${chartWidth} 222`}
         role="img"
         aria-labelledby="cashflow-chart-title cashflow-chart-description"
       >
         <title id="cashflow-chart-title">{t("cashFlowChart")}</title>
         <desc id="cashflow-chart-description">{t("cashFlowChartDescription")}</desc>
-        <line class="chart-baseline" x1="38" x2="700" y1={baseline} y2={baseline} />
+        <line class="stroke-border [stroke-width:1]" x1="38" x2="700" y1={baseline} y2={baseline} />
         {#each buckets as bucket, index (`${bucket.start_date}:${bucket.end_date}`)}
           {@const incomeHeight = height(bucket.income_minor)}
           {@const expenseHeight = height(bucket.expense_minor)}
           <g>
             <rect
-              class="chart-bar chart-bar--income"
+              class="fill-primary"
               x={center(index) - barWidth - 2}
               y={baseline - incomeHeight}
               width={barWidth}
@@ -69,7 +70,7 @@
               <title>{t("income")}: {formatMoney(bucket.income_minor, currency, language)}</title>
             </rect>
             <rect
-              class="chart-bar chart-bar--expense"
+              class="fill-destructive/70"
               x={center(index) + 2}
               y={baseline - expenseHeight}
               width={barWidth}
@@ -78,18 +79,18 @@
             >
               <title>{t("expense")}: {formatMoney(bucket.expense_minor, currency, language)}</title>
             </rect>
-            <text class="chart-axis-label" x={center(index)} y="204" text-anchor="middle">
+            <text class="fill-muted-foreground font-mono text-[9px]" x={center(index)} y="204" text-anchor="middle">
               {formatWeekRange(bucket.start_date, bucket.end_date, language)}
             </text>
             {#if !bucket.conversion_complete}
-              <text class="chart-gap-marker" x={center(index)} y="218" text-anchor="middle">*</text>
+              <text class="fill-destructive font-mono text-xs" x={center(index)} y="218" text-anchor="middle">*</text>
             {/if}
           </g>
         {/each}
       </svg>
     </div>
     {#if !conversionComplete}
-      <p class="chart-note">* {t("partialConversionNote")}</p>
+      <p class="mt-2 text-xs text-muted-foreground">* {t("partialConversionNote")}</p>
     {/if}
     <table class="sr-only">
       <caption>{t("cashFlowChartDescription")}</caption>
@@ -113,7 +114,7 @@
       </tbody>
     </table>
   {:else}
-    <div class="chart-empty">
+    <div class="mt-2 grid min-h-48 place-items-center rounded-lg border border-dashed text-xs text-muted-foreground">
       <p>{t("noCashFlow")}</p>
     </div>
   {/if}

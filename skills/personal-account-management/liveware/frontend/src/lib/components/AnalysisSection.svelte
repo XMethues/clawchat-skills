@@ -1,7 +1,6 @@
 <script lang="ts">
   import BrainCircuitIcon from "@lucide/svelte/icons/brain-circuit";
   import CircleCheckIcon from "@lucide/svelte/icons/circle-check";
-  import ExternalLinkIcon from "@lucide/svelte/icons/external-link";
   import LoaderCircleIcon from "@lucide/svelte/icons/loader-circle";
   import TriangleAlertIcon from "@lucide/svelte/icons/triangle-alert";
   import { Badge } from "$lib/components/ui/badge";
@@ -67,21 +66,21 @@
   }
 </script>
 
-<section class="analysis-section" aria-labelledby="analysis-title">
-  <div class="activity-heading">
+<section class="grid gap-4" aria-labelledby="analysis-title">
+  <div class="flex items-end justify-between gap-4 max-[45rem]:flex-col max-[45rem]:items-start">
     <div>
-      <p class="module-eyebrow">{t("navAnalysis")}</p>
-      <h2 id="analysis-title">{t("analysisTitle")}</h2>
-      <p>{t("analysisDescription")}</p>
+      <p class="mb-0.5 font-mono text-xs font-semibold uppercase tracking-widest text-muted-foreground">{t("navAnalysis")}</p>
+      <h2 id="analysis-title" class="text-3xl font-semibold tracking-tight sm:text-4xl">{t("analysisTitle")}</h2>
+      <p class="mt-1 max-w-2xl text-muted-foreground">{t("analysisDescription")}</p>
     </div>
   </div>
 
-  <Card.Root class="analysis-card" data-state={analysis.state} aria-live="polite" aria-busy={isRunning || analysisLaunching}>
+  <Card.Root class="min-h-80 overflow-hidden data-[state=succeeded]:border-primary/40 data-[state=failed]:border-destructive/50" data-state={analysis.state} aria-live="polite" aria-busy={isRunning || analysisLaunching}>
     <Card.Header>
-      <div class="analysis-status-heading">
-        <div class="analysis-icon" aria-hidden="true">
+      <div class="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 max-[45rem]:grid-cols-[auto_minmax(0,1fr)] max-[45rem]:[&>[data-slot=badge]]:col-span-full max-[45rem]:[&>[data-slot=badge]]:justify-self-start">
+        <div class="grid size-11 place-items-center rounded-lg bg-muted text-primary data-[failed=true]:text-destructive [&_svg]:size-5" data-failed={analysis.state === "failed"} aria-hidden="true">
           {#if isRunning || analysisLaunching}
-            <LoaderCircleIcon class="analysis-spinner" />
+            <LoaderCircleIcon class="animate-spin motion-reduce:animate-none" />
           {:else if analysis.state === "succeeded"}
             <CircleCheckIcon />
           {:else if analysis.state === "failed"}
@@ -102,27 +101,29 @@
       </div>
     </Card.Header>
 
-    <Card.Content class="analysis-content">
+    <Card.Content class="flex min-h-44 flex-1 flex-col justify-between gap-2">
       {#if isRunning}
-        <p>{t("analysisRunningDetail")}</p>
-        <small>{t("analysisElapsed")} {elapsedLabel(analysis.elapsed_s)}</small>
+        <p class="max-w-3xl text-base leading-relaxed break-words sm:text-lg">{t("analysisRunningDetail")}</p>
+        <small class="font-mono text-muted-foreground">{t("analysisElapsed")} {elapsedLabel(analysis.elapsed_s)}</small>
       {:else if analysisLaunching}
-        <p>{t("analysisStarting")}</p>
+        <p class="max-w-3xl text-base leading-relaxed break-words sm:text-lg">{t("analysisStarting")}</p>
       {:else if analysis.state === "succeeded"}
-        <p>{t("analysisSucceededDetail")}</p>
+        <p class="max-w-3xl text-base leading-relaxed break-words sm:text-lg">{t("analysisSucceededDetail")}</p>
       {:else if analysis.state === "failed"}
-        <p>{failureMessage()}</p>
+        <p class="max-w-3xl text-base leading-relaxed break-words sm:text-lg">{failureMessage()}</p>
       {:else}
-        <p>{t("analysisReadyDetail")}</p>
+        <p class="max-w-3xl text-base leading-relaxed break-words sm:text-lg">{t("analysisReadyDetail")}</p>
       {/if}
 
-      <div class="analysis-actions">
+      <div class="mt-auto flex flex-wrap gap-3 pt-6 max-[45rem]:w-full max-[45rem]:[&_[data-slot=button]]:w-full">
         {#if analysis.state === "succeeded" && analysis.report_url}
-          <Button href={analysis.report_url} target="_blank" rel="noopener noreferrer">
+          <Button href={`#/reports/${displayedMonth}`}>
             {t("analysisOpenReport")}
-            <ExternalLinkIcon aria-hidden="true" data-icon="inline-end" />
           </Button>
         {/if}
+        <Button href="#/reports" variant="outline">
+          {t("analysisAllReports")}
+        </Button>
         <Button
           variant={analysis.state === "succeeded" ? "outline" : "default"}
           disabled={actionDisabled}

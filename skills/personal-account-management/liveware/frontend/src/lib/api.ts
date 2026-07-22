@@ -3,6 +3,8 @@ import type {
   AnalysisStatus,
   BookResponse,
   MonthIndex,
+  ReportDocument,
+  ReportIndex,
 } from "$lib/types";
 
 export class DashboardApiError extends Error {
@@ -73,4 +75,12 @@ export function startAnalysis(month: string, signal?: AbortSignal): Promise<Anal
       output_filename: `analysis-${month}.html`,
     }),
   });
+}
+
+export function fetchReports(signal?: AbortSignal): Promise<ReportIndex> {
+  return requestJson<ReportIndex>("/api/reports", { signal });
+}
+
+export function fetchReport(month: string, signal?: AbortSignal): Promise<ReportDocument> {
+  return requestJson<ReportDocument>(`/api/reports/${encodeURIComponent(month)}`, { signal });
 }

@@ -13,13 +13,13 @@
   let { title, description, actionLabel, onAction, role }: Props = $props();
 </script>
 
-<div class="empty-state" {role} aria-live={role === "alert" ? "assertive" : undefined}>
+<div class="grid min-h-72 place-items-center rounded-lg border border-dashed bg-muted/30 p-8 text-center" {role} aria-live={role === "alert" ? "assertive" : undefined}>
   <div>
-    <div class="empty-state__icon" aria-hidden="true">
+    <div class="mx-auto mb-4 grid size-12 place-items-center rounded-lg bg-muted text-muted-foreground" aria-hidden="true">
       <WalletCardsIcon size={21} strokeWidth={1.8} />
     </div>
-    <h2>{title}</h2>
-    <p>{description}</p>
+    <h2 class="text-xl font-semibold tracking-tight">{title}</h2>
+    <p class="mx-auto mt-2 max-w-xl text-muted-foreground">{description}</p>
     {#if actionLabel && onAction}
       <div class="mt-5">
         <Button variant="outline" onclick={onAction}>{actionLabel}</Button>

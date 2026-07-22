@@ -769,13 +769,39 @@ def apply_balance_updates(book: dict[str, Any], updates: list[dict[str, Any]]) -
         account["updated_at"] = now_iso()
 
 
-def find_exchange_rate(book: dict[str, Any], rate_id: str | None) -> dict[str, Any] | None:
-    if not rate_id:
+def find_exchange_rate(
+    book: dict[str, Any],
+    rate_id: str | None,
+    *,
+    rate_date: str | None = None,
+    from_currency: str | None = None,
+    to_currency: str | None = None,
+) -> dict[str, Any] | None:
+    rates = [rate for rate in book.get("exchange_rates", []) if isinstance(rate, dict)]
+    if rate_id:
+        for rate in rates:
+            if rate.get("id") == rate_id:
+                return rate
         return None
-    for rate in book.get("exchange_rates", []):
-        if rate.get("id") == rate_id:
-            return rate
-    return None
+    if not rate_date or not from_currency or not to_currency:
+        return None
+    candidates = [
+        rate
+        for rate in rates
+        if rate.get("date") == rate_date
+        and str(rate.get("from") or "").upper() == from_currency.upper()
+        and str(rate.get("to") or "").upper() == to_currency.upper()
+    ]
+    if not candidates:
+        return None
+    return sorted(
+        candidates,
+        key=lambda item: (
+            bool(item.get("estimate", False)),
+            str(item.get("created_at") or ""),
+            str(item.get("id") or ""),
+        ),
+    )[0]
 
 
 def resolve_base_amount(
@@ -793,14 +819,24 @@ def resolve_base_amount(
         return parse_positive_amount_minor(base_amount, base_currency, field="base_amount"), base_currency, exchange_rate_id
     if currency == base_currency:
         return amount_minor, base_currency, None
-    rate = find_exchange_rate(book, exchange_rate_id)
+    rate = find_exchange_rate(
+        book,
+        exchange_rate_id,
+        rate_date=tx_date,
+        from_currency=currency,
+        to_currency=base_currency,
+    )
     if not rate:
         return None, base_currency, exchange_rate_id
-    if rate.get("from") != currency or rate.get("to") != base_currency:
+    if (
+        str(rate.get("from") or "").upper() != currency
+        or str(rate.get("to") or "").upper() != base_currency
+    ):
         return None, base_currency, exchange_rate_id
     source_major = Decimal(amount_minor) / Decimal(10 ** currency_decimals(currency))
     converted_major = source_major * Decimal(str(rate.get("rate")))
-    return parse_amount_minor(str(converted_major), base_currency), base_currency, exchange_rate_id
+    resolved_rate_id = str(rate.get("id") or exchange_rate_id or "") or None
+    return parse_amount_minor(str(converted_major), base_currency), base_currency, resolved_rate_id
 
 
 def review_state(needs_review: bool, reason: str = "") -> dict[str, Any]:
@@ -879,6 +915,45 @@ def reject_duplicate_transaction_id(book: dict[str, Any], tx_id: str) -> bool:
     return True
 
 
+def normalized_subscription_match_text(value: Any) -> str:
+    return "".join(character for character in str(value or "").casefold() if character.isalnum())
+
+
+def matching_subscriptions(book: dict[str, Any], record: dict[str, Any]) -> list[dict[str, Any]]:
+    if record.get("kind") != "expense":
+        return []
+    source = record.get("source") if isinstance(record.get("source"), dict) else {}
+    candidate_text = normalized_subscription_match_text(
+        " ".join(
+            [
+                str(record.get("title") or ""),
+                str(record.get("merchant") or ""),
+                str(source.get("source_text") or ""),
+            ]
+        )
+    )
+    if not candidate_text:
+        return []
+    matches: list[dict[str, Any]] = []
+    for subscription in book.get("subscriptions", []):
+        if not isinstance(subscription, dict) or not subscription.get("active", True):
+            continue
+        name = normalized_subscription_match_text(subscription.get("name"))
+        if not name or name not in candidate_text:
+            continue
+        if subscription.get("amount_minor") != record.get("amount_minor"):
+            continue
+        if str(subscription.get("currency") or "").upper() != str(record.get("currency") or "").upper():
+            continue
+        payment_account_id = subscription.get("payment_account_id")
+        if payment_account_id and payment_account_id != record.get("account_id"):
+            continue
+        category = subscription.get("category")
+        if category and category != record.get("category"):
+            continue
+        matches.append(subscription)
+    return matches
+
 
 def cmd_add_transaction(args: argparse.Namespace) -> int:
     try:
@@ -933,6 +1008,28 @@ def cmd_add_transaction(args: argparse.Namespace) -> int:
     }
     if args.kind != "transfer":
         record.pop("to_account_id", None)
+    subscription_matches = matching_subscriptions(book, record)
+    forced_subscription_id = args.subscription_id
+    if (
+        forced_subscription_id
+        or record["source"].get("type") == "subscription"
+        or (subscription_matches and not args.allow_unlinked_subscription)
+    ):
+        matching_subscription_id = forced_subscription_id or (
+            subscription_matches[0].get("id") if len(subscription_matches) == 1 else None
+        )
+        payload = error_result(
+            "actual subscription charges must use charge-subscription so the transaction, schedule, and subscription reference stay consistent",
+            code="subscription_charge_required",
+        )
+        if matching_subscription_id:
+            payload["matching_subscription"] = str(matching_subscription_id)
+        elif subscription_matches:
+            payload["matching_subscriptions"] = ",".join(
+                str(subscription.get("id")) for subscription in subscription_matches
+            )
+        print_json(payload)
+        return 1
     if currency != base_currency and base_amount_minor is None:
         append_review_reason(record, "missing_base_amount", "Foreign-currency transaction is missing a confirmed base-currency amount or exchange rate")
     if not category_known(book, args.category):
@@ -1126,13 +1223,14 @@ def cmd_add_subscription(args: argparse.Namespace) -> int:
         "last_charged_date": (existing or {}).get("last_charged_date"),
         "source": source_payload(args),
     }
-    if currency != base_currency and base_amount_minor is None:
-        record["needs_review"] = True
-        record["review_reason"] = "missing_base_amount"
     should_write, rc = require_write_confirmation(args, record_type="subscription", record=record)
     if not should_write:
         return int(rc)
     status = upsert_by_id_or_name(book.setdefault("subscriptions", []), record)
+    saved_subscription = find_subscription(book, sub_id) or find_subscription(book, args.name)
+    if saved_subscription and saved_subscription.get("review_reason") == "missing_base_amount":
+        saved_subscription.pop("needs_review", None)
+        saved_subscription.pop("review_reason", None)
     save_static_book(args.book, book)
     print_json({"status": status, "record_type": "subscription", "id": sub_id, "record": record})
     return 0
@@ -1569,7 +1667,12 @@ def cmd_charge_subscription(args: argparse.Namespace) -> int:
         currency = (args.currency or sub.get("currency", "CNY")).upper()
         amount_minor = parse_positive_amount_minor(args.amount, currency) if args.amount else require_positive_minor(int(sub.get("amount_minor", 0)), field="subscription amount")
         base_amount_minor, base_currency, exchange_rate_id = resolve_base_amount(
-            book, amount_minor, currency, charge_date, base_amount=args.base_amount, exchange_rate_id=args.exchange_rate_id or sub.get("exchange_rate_id")
+            book,
+            amount_minor,
+            currency,
+            charge_date,
+            base_amount=args.base_amount,
+            exchange_rate_id=args.exchange_rate_id,
         )
         account_id, _ = resolve_account_reference(book, args.account or sub.get("payment_account_id"), field="account", required=not args.no_balance_update)
     except Exception as exc:
@@ -2603,6 +2706,11 @@ def build_parser() -> argparse.ArgumentParser:
     tx.add_argument("--account")
     tx.add_argument("--to-account", help="Destination account for kind=transfer")
     tx.add_argument("--subscription-id")
+    tx.add_argument(
+        "--allow-unlinked-subscription",
+        action="store_true",
+        help="Allow an explicitly independent expense that resembles a subscription charge",
+    )
     tx.add_argument("--tag", action="append")
     tx.add_argument("--notes")
     tx.add_argument("--needs-review", action="store_true")

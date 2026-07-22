@@ -126,6 +126,14 @@ def app_records(output: str) -> list[dict[str, str]]:
     return records
 
 
+def app_exists(liveware: Path, timeout: int, app_id: str) -> bool:
+    try:
+        run_liveware(liveware, timeout, "app", "inspect", app_id, "--json")
+    except RuntimeError:
+        return False
+    return True
+
+
 def extract_created_app(output: str, app_name: str) -> dict[str, str]:
     records = app_records(output)
     if records:
@@ -205,7 +213,6 @@ async def async_main(args: argparse.Namespace) -> int:
 
     try:
         liveware = resolve_liveware(args, hermes_home)
-        os.environ["HOME"] = str(hermes_home)
         os.environ["PATH"] = str(liveware.parent) + os.pathsep + os.environ.get("PATH", "")
         tools = load_clawchat_tools(hermes_home)
 
@@ -214,7 +221,7 @@ async def async_main(args: argparse.Namespace) -> int:
             emit("blocked", code="liveware_login_failed", message=str(login_result))
             return 2
 
-        if saved_app_id:
+        if saved_app_id and app_exists(liveware, args.timeout, saved_app_id):
             selected = {
                 "app_id": saved_app_id,
                 "name": saved_name,
@@ -222,7 +229,7 @@ async def async_main(args: argparse.Namespace) -> int:
                 "domain": "",
             }
         else:
-            list_output = run_liveware(liveware, args.timeout, "app", "list")
+            list_output = run_liveware(liveware, args.timeout, "app", "list", "--json")
             records = app_records(list_output)
             selected = next((item for item in records if item.get("name") == args.app_name), None)
             if selected is None:

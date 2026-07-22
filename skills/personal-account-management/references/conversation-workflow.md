@@ -59,19 +59,19 @@ When the user uploads a receipt, invoice, statement, screenshot, or bill:
 
 Example confirmation prompt:
 
-> I identified one expense from the uploaded receipt: 2026-07-02, Manner Coffee, ¥86, category Dining and Coffee, paid with Alipay. Please confirm whether the amount, receipt, category, and payment method are correct.
+> I identified one expense from the uploaded receipt: 2026-07-02, Neighborhood Cafe, ¥86, category Dining and Coffee, paid with Digital Wallet. Please confirm whether the amount, receipt, category, and payment method are correct.
 
 ## Subscription flow
 
 When the user mentions a subscription:
 
 1. Determine amount, currency, cadence, category, next billing date, and payment account when known.
-2. Preserve original currency. Do not invent exchange rates. If conversion is requested and no settled amount or user-supplied rate exists, follow `exchange-rate-lookup.md` to search a dated reference rate.
+2. Preserve original currency. A recurring definition may keep only its billed currency, but an actual charge must also resolve its base-currency amount: prefer the settled amount, then a user-supplied rate, otherwise follow `exchange-rate-lookup.md` to search a dated reference rate for the charge date.
 3. Preview the subscription candidate.
 4. Ask the user to confirm cadence, amount, category, and next billing date.
 5. Write only after confirmation.
 
-When recording an actual charge, link the transaction back to `subscription_id` and check whether the charge is early, duplicate, or outside the expected amount.
+When recording an actual charge, write the subscription definition first when it is new, then use the dedicated subscription-charge workflow. Never use the generic transaction workflow for a subscription charge. The dedicated workflow links the transaction back to the subscription, advances the billing schedule, and checks whether the charge is early, duplicate, or outside the expected amount.
 
 For a daily blueprint reminder, the scheduled turn is read-only. Present all due or overdue items as one complete charge preview. If the user confirms that a listed subscription remains active and was charged, that reply is the write confirmation for the exact previewed expense. If the user says it was cancelled, preview deactivation separately and confirm it before changing the subscription.
 
@@ -79,10 +79,10 @@ For a daily blueprint reminder, the scheduled turn is read-only. Present all due
 
 1. Preserve the original amount and currency.
 2. Prefer the actual settled base-currency amount from the user, receipt, card, bank, or wallet statement.
-3. If the user asks Hermes to find the conversion and no settled amount is available, follow `exchange-rate-lookup.md`: search the exact pair and transaction date, open a reputable source, and treat a searched market rate as an estimate.
+3. For an actual ledger transaction, if no settled amount or user-supplied rate is available, follow `exchange-rate-lookup.md`: search the exact pair and transaction date, open a reputable source, and treat a searched market rate as an estimate. Do this even when the user did not separately ask for conversion; the confirmation preview must show a complete base-currency cash-flow candidate.
 4. Preview the source, rate date, pair direction, rate, conversion, and resulting transaction/account effect in natural language.
 5. Wait for explicit confirmation before saving either the exchange-rate record or the transaction.
-6. If no reliable dated source can be found, keep the original currency and explain that the converted amount still needs confirmation; never fabricate a rate.
+6. If no reliable dated source can be found, stop before writing and ask for the settled amount or a user-approved rate. Only write the original-currency transaction under review when the user explicitly confirms that incomplete fallback; never fabricate a rate.
 
 ## Review flow
 

@@ -1,7 +1,7 @@
 ---
 name: personal-account-management
 description: "Personal finance ledger/account management for creating accounts and recording balances, income, expenses, transfers, subscriptions, budgets, receipts, and review items with preview and confirmation."
-version: 1.7.0
+version: 1.7.1
 author: Colin + Hermes Agent
 license: MIT
 platforms: [linux, macos, windows]
@@ -70,7 +70,8 @@ When replying in ClawChat:
 - Translate every internal result before sending: a preview result means "pending confirmation"; a successful write means "saved/written"; a validation success means "the account book check passed"; a missing account error means "I cannot find that account; please choose an existing account or confirm creating a new one". If you hit an internal command mistake and retry successfully, do not narrate that mistake or mention option names; give only the natural final result.
 - A user asking to preview, check, inspect, or "take a look" has not confirmed any write. Do not create accounts, categories, budgets, subscriptions, transactions, receipt records, or review flags until the user clearly says to write/confirm.
 - Supporting records follow the same rule as transactions. If a request needs supporting accounts/categories/budgets/subscriptions/exchange rates, preview the complete bundle first. One explicit confirmation authorizes every item listed in that bundle; after confirmation, execute all listed items in order without asking for a second confirmation unless a new material user-visible item was not previewed.
-- When the user asks Hermes to convert a foreign-currency amount and no actual settled base amount or user-supplied rate is available, search for a dated reference rate by following `references/exchange-rate-lookup.md`. Never invent a rate or silently use today's rate for a historical transaction.
+- For every actual foreign-currency transaction or subscription charge, prefer the settled base-currency amount. Otherwise search for a dated reference rate by following `references/exchange-rate-lookup.md`, include the rate and conversion in the confirmation bundle, and persist both together. Do not write the transaction first and ask for the conversion afterward. Never invent a rate or silently use today's rate for a historical transaction.
+- Never use `add-transaction` for an actual subscription charge. If the user creates a subscription and reports its first charge in one message, preview one bundle, write the subscription definition first, then record the charge through `charge-subscription` so the transaction reference and billing schedule are updated atomically.
 - If the user signals a possible duplicate, do not auto-write. Surface the existing matching record in natural language and ask whether to treat it as duplicate, not-duplicate, or edit the fields. See `references/duplicate-detection.md` for wording guidance.
 - If the user asks to enable personal-account-management liveware, ask for the app display name first. Offer the default localized product name "Account Book" and allow a custom name. Wait for the user's choice; do not activate with the default silently unless the user already supplied or confirmed it in the same turn.
 - Never run ad-hoc shell/Python snippets or one-off ledger-inspection commands during a user-visible ClawChat flow. In particular, do not inspect the ledger just because the user says "if missing" or "if it does not exist". Those probes can surface raw command approval prompts. Instead, use the current confirmed conversation context when safe, ask a natural clarification, or present a conditional preview: "if it already exists I will reuse it; if not, I will create it after confirmation".
@@ -84,6 +85,7 @@ When replying in ClawChat:
 | Missing supporting account/category/budget | Preview the support record and target record as one bundle; one confirmation authorizes the whole bundle. |
 | User suspects a duplicate transaction | Do not write. Surface the existing matching record in natural language and ask whether to treat it as duplicate, not-duplicate, or edit. |
 | Convert foreign currency | Prefer the actual settled base amount; otherwise search a dated authoritative reference rate, show source/date/calculation, and confirm before saving it. See `references/exchange-rate-lookup.md`. |
+| User reports an actual subscription charge | Create/reuse the subscription first, resolve any foreign-currency conversion for the charge date, then use `charge-subscription`; never use the generic transaction command. |
 | Scheduled subscription check | Query active subscriptions due today or overdue. Stay silent when none are due; otherwise send one complete charge preview and wait for confirmation. |
 | User confirms a scheduled charge preview | Record the listed expense, update the payment-account balance and next billing date, and do not add anything not shown in the preview. |
 | User reports a subscription was cancelled | Preview deactivation, confirm it, then disable future due reminders without recording an expense. |

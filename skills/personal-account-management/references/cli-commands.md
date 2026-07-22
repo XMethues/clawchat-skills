@@ -43,10 +43,10 @@ All of these are idempotent on `id`. Re-running with the same id returns `{"stat
 
 | Command | Effect |
 |---|---|
-| `add-transaction` | Append to the month shard matching `tx.date[:7]`. |
+| `add-transaction` | Append to the month shard matching `tx.date[:7]`. Reject a transaction that clearly matches an existing subscription unless the operator explicitly marks it independent; actual subscription charges use `charge-subscription`. |
 | `flag-transaction --id ... --reason ...` | Mark an existing transaction as `needs_review`. |
 | `resolve-review --id ... --resolution ...` | Move a transaction out of `needs_review`. |
-| `charge-subscription --subscription ...` | Generate a transaction from a subscription definition + advance `next_billing_date`. May require `--base-amount` when the subscription currency differs from the payment account's currency. |
+| `charge-subscription --subscription ...` | Generate a linked transaction from a subscription definition + advance `next_billing_date`. Uses a persisted exact-date currency-pair rate when no explicit rate reference or base amount is supplied. |
 | `import-receipt` | Same as `add-transaction` plus OCR-derived `source` fields (`source.type: "receipt"`, `source.ocr_engine`, `source.line_items`). |
 
 There is no `update-transaction` or `delete-transaction` command. To move a transaction across months, load the book with `account_book.load_book`, mutate `date` in memory, and call `account_book.save_book` — `save_book` will rebucket and unlink empty shards.

@@ -37,7 +37,7 @@ unless `DELIVERY` says to do so.
 
 **Trust the placeholders.** The angle-bracketed tokens below
 (`{REPORT_PATH}`, `{STATIC_BOOK_PATH}`, `{TRANSACTIONS_DIR}`,
-`{LIVEWARE_URL}`, `{WINDOW}`, `{DELIVERY}`, `{OUTPUT_FILENAME}`) are
+`{WINDOW}`, `{DELIVERY}`, `{OUTPUT_FILENAME}`) are
 concrete values substituted by the caller before you see this prompt —
 they are NOT templates for you to fill in. The referenced files
 (account book, transaction shards) DO exist on this filesystem at the
@@ -111,10 +111,13 @@ For each budget in `{STATIC_BOOK_PATH}`:
 
 For each subscription in `{STATIC_BOOK_PATH}`:
 
-- Expected cadence (from `frequency` and `next_billing_date`), latest
+- Expected cadence (from `cadence` and `next_billing_date`), latest
   expected billing dates within the window.
 - Observed `charge-subscription` transactions in the window (matched by
   subscription reference + same amount).
+- If a same-name/same-amount expense appears without a subscription reference,
+  describe it naturally as an unlinked likely charge. Never expose the internal
+  field name used to store that reference.
 - Status per subscription:
 
   - `✅` expected & observed on time within window.
@@ -180,11 +183,8 @@ do not do either.
 The file must contain exactly one `<h1>` (the title), one `<main>` whose
 children are the seven `<section>` blocks (one per § above, with `<h2>`
 per section), and a single `<footer>` that records the analysis window,
-the date the report was generated, the source files read, and a final
-paragraph containing an anchor link `<a href="/reports/">` with the
-visible text `→ View all monthly reports` (the liveware dashboard serves a
-chronological index of every report at that path; the link lets the
-owner jump back to it from any individual report).
+the date the report was generated, and the source files read. Do not add
+navigation links; the Liveware dashboard owns report-list and back navigation.
 
 ## Hard rules
 

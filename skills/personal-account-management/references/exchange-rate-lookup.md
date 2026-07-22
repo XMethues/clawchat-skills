@@ -1,6 +1,6 @@
 # Exchange-rate lookup and conversion
 
-Use this reference when a personal-finance record is denominated in a currency other than the ledger's base currency and the user asks Hermes to find or calculate the conversion.
+Use this reference whenever an actual personal-finance transaction is denominated in a currency other than the ledger's base currency and no settled base-currency amount or user-supplied rate is available. Do not require a separate conversion request from the user.
 
 ## Authority order
 

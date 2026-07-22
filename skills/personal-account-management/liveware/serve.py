@@ -4,8 +4,8 @@ Personal-account ledger dashboard server.
 
 Purpose
 -------
-- Serve the committed Svelte entry at `liveware/dist/index.html` and only
-  strictly contained generated files beneath `liveware/dist/assets/`.
+- Serve the committed SvelteKit entry at `liveware/dist/index.html` and
+  strictly contained generated files beneath `liveware/dist/_app/`.
 - Expose raw schema-v3 `GET /api/book` and a bounded
   `GET /api/book?month=YYYY-MM` projection containing one resolved account
   snapshot plus that month's transactions.
@@ -36,6 +36,7 @@ import mimetypes
 import os
 import re
 import sys
+import threading
 import time
 import uuid
 from datetime import date
@@ -46,7 +47,6 @@ from urllib import request as urlrequest
 # Where this file lives — `liveware/serve.py` is the convention.
 SKILL_DIR = Path(__file__).resolve().parent
 DIST_DIR = SKILL_DIR / "dist"
-ASSETS_DIR = DIST_DIR / "assets"
 SCRIPTS_DIR = SKILL_DIR.parent / "scripts"
 if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
@@ -134,8 +134,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 class Handler:
     """Minimal http.server handler. No third-party deps."""
 
+    MAX_ANALYZE_BODY_BYTES = 1024 * 1024
     INDEX_FILE = DIST_DIR / "index.html"
-    ASSETS_ROOT = ASSETS_DIR
+    STATIC_ROOT = DIST_DIR
     JSON_HEADERS = {
         "Cache-Control": "no-store",
         "Content-Type": "application/json; charset=utf-8",
@@ -156,7 +157,6 @@ class Handler:
         # With ThreadingHTTPServer, /api/analyze can be entered by multiple
         # threads in parallel, so the busy flag must be guarded by a lock
         # to keep it single-flight.
-        import threading
         self._analyze_lock: threading.Lock = threading.Lock()
         self._analyze_busy: bool = False
         self._analyze_started_at: float = 0.0
@@ -174,6 +174,35 @@ class Handler:
             self._read_static()
         except (UnsupportedStaticSchema, InvalidStaticLedger) as exc:
             self._log(str(exc))
+
+    def _read_chunked_body(self, rfile) -> bytes:
+        chunks: list[bytes] = []
+        total = 0
+        while True:
+            size_line = rfile.readline(8193)
+            if not size_line or len(size_line) > 8192:
+                raise ValueError("invalid chunk size line")
+            size_token = size_line.strip().split(b";", 1)[0]
+            try:
+                chunk_size = int(size_token, 16)
+            except ValueError as exc:
+                raise ValueError("invalid chunk size") from exc
+            if chunk_size == 0:
+                while True:
+                    trailer = rfile.readline(8193)
+                    if trailer in (b"", b"\r\n", b"\n"):
+                        return b"".join(chunks)
+                    if len(trailer) > 8192:
+                        raise ValueError("chunk trailer line is too long")
+            total += chunk_size
+            if total > self.MAX_ANALYZE_BODY_BYTES:
+                raise ValueError("request body is too large")
+            chunk = rfile.read(chunk_size)
+            if len(chunk) != chunk_size:
+                raise ValueError("incomplete chunk data")
+            if rfile.read(2) != b"\r\n":
+                raise ValueError("invalid chunk terminator")
+            chunks.append(chunk)
 
     # -- Multi-file book layout ---------------------------------------------
     # The ledger is split across:
@@ -492,14 +521,84 @@ class Handler:
             {"code": "report_missing", "message": "The analysis finished without a report file."},
         )
 
+    def _rewrite_report_navigation(self, body: bytes) -> bytes:
+        try:
+            report = body.decode("utf-8")
+        except UnicodeDecodeError:
+            return body
+        rewritten = re.sub(
+            r'href=(["\'])(?:https?://[^"\']+)?/reports/\1',
+            lambda match: f"href={match.group(1)}/reports.html{match.group(1)}",
+            report,
+        )
+        return rewritten.encode("utf-8")
+
+    def _strip_report_navigation(self, report: str) -> str:
+        """Remove legacy report-index anchors from iframe content.
+
+        SvelteKit owns report navigation now. Keeping the generated link in a
+        sandboxed report iframe would either do nothing or show a nested 404.
+        """
+        return re.sub(
+            r'<a\b[^>]*href=(["\'])(?:https?://[^"\']+)?/reports(?:/|\.html)?\1[^>]*>.*?</a>',
+            "",
+            report,
+            flags=re.IGNORECASE | re.DOTALL,
+        )
+
+    def _list_reports(self) -> list[dict]:
+        reports_dir = (self.book_path.parent / "reports").resolve()
+        if not reports_dir.is_dir():
+            return []
+        entries: list[dict] = []
+        rx = re.compile(r"^analysis-(\d{4})-(0[1-9]|1[0-2])\.html$")
+        for report_path in reports_dir.iterdir():
+            if not report_path.is_file() or report_path.is_symlink():
+                continue
+            match = rx.match(report_path.name)
+            if not match:
+                continue
+            stat = report_path.stat()
+            entries.append(
+                {
+                    "month": f"{match.group(1)}-{match.group(2)}",
+                    "file_name": report_path.name,
+                    "size": stat.st_size,
+                    "modified_at": stat.st_mtime,
+                }
+            )
+        entries.sort(key=lambda entry: entry["month"], reverse=True)
+        return entries
+
+    def _read_report_document(self, month: str) -> dict | None:
+        if not re.fullmatch(r"\d{4}-(0[1-9]|1[0-2])", month):
+            return None
+        reports_dir = (self.book_path.parent / "reports").resolve()
+        target = (reports_dir / f"analysis-{month}.html").resolve()
+        try:
+            target.relative_to(reports_dir)
+        except ValueError:
+            return None
+        if target.is_symlink() or not target.is_file():
+            return None
+        try:
+            report = target.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
+            return None
+        stat = target.stat()
+        return {
+            "month": month,
+            "file_name": target.name,
+            "size": stat.st_size,
+            "modified_at": stat.st_mtime,
+            "html": self._strip_report_navigation(report),
+        }
+
     def _render_analyze_prompt(self, *, window: str, delivery: str, output_filename: str) -> str:
         """Read the canonical skill prompt template and substitute the
         caller-supplied variables. Returns the rendered system
         prompt to forward to the Hermes API server. Raises FileNotFoundError
         if the prompt template is missing — the caller surfaces a 503.
-
-        The public report base URL is read from the Liveware state file
-        next to the account book.
 
         The notification recipient is NOT injected — the agent figures
         it out at runtime from its own session context (ClawChat Sender
@@ -520,18 +619,6 @@ class Handler:
         book_dir = self.book_path.parent
         report_path = book_dir / "reports" / output_filename
 
-        state_file = book_dir / "liveware-dashboard.state.json"
-        liveware_url = ""
-        if state_file.exists():
-            try:
-                state = json.loads(state_file.read_text(encoding="utf-8"))
-                if isinstance(state, dict):
-                    liveware_url = str(state.get("public_url") or "").rstrip("/")
-            except (OSError, json.JSONDecodeError):
-                liveware_url = ""
-        if not liveware_url:
-            raise RuntimeError("Liveware public URL is missing; run start_liveware.sh first")
-
         substitutions = {
             "{STATIC_BOOK_PATH}": str(self.book_path),
             "{TRANSACTIONS_DIR}": str(book_dir / "transactions"),
@@ -540,7 +627,6 @@ class Handler:
             "{WINDOW}": window,
             "{DELIVERY}": delivery,
             "{OUTPUT_FILENAME}": output_filename,
-            "{LIVEWARE_URL}": liveware_url,
         }
         rendered = prompt_body
         for needle, replacement in substitutions.items():
@@ -606,9 +692,72 @@ class Handler:
         except (urlerror.URLError, TimeoutError, ConnectionError) as e:
             return 503, str(e).encode("utf-8"), {"Content-Type": "text/plain; charset=utf-8"}
 
+    def _run_analysis_job(
+        self,
+        *,
+        run_id: str,
+        system_prompt: str,
+        window: str,
+        private_output_filename: str,
+        output_filename: str,
+    ) -> None:
+        try:
+            try:
+                upstream_status, upstream_body, _upstream_headers = self._call_hermes_api(
+                    system_prompt
+                )
+            except Exception as exc:
+                self._log(f"/api/analyze: upstream exception: {exc}")
+                upstream_status = 503
+                upstream_body = str(exc).encode("utf-8")
+            self._log(
+                f"/api/analyze: upstream status={upstream_status}, "
+                f"body bytes={len(upstream_body)}, window={window!r}"
+            )
+
+            with self._analyze_lock:
+                try:
+                    state, report_url, analysis_error = self._analysis_file_outcome_locked(
+                        run_id=run_id,
+                        private_output_filename=private_output_filename,
+                        output_filename=output_filename,
+                        upstream_status=upstream_status,
+                    )
+                except Exception as exc:
+                    self._log(f"/api/analyze: report publish failed: {exc}")
+                    state, report_url, analysis_error = (
+                        "failed",
+                        "",
+                        {
+                            "code": "report_publish_failed",
+                            "message": "The report file could not be published.",
+                        },
+                    )
+                if state != "superseded":
+                    self._finish_analysis_locked(
+                        run_id=run_id,
+                        state=state,
+                        finished_at=time.time(),
+                        report_url=report_url,
+                        error=analysis_error,
+                        upstream_status=upstream_status,
+                    )
+        except Exception as exc:
+            self._log(f"/api/analyze: background worker failed: {exc}")
+            with self._analyze_lock:
+                self._finish_analysis_locked(
+                    run_id=run_id,
+                    state="failed",
+                    finished_at=time.time(),
+                    error={
+                        "code": "analysis_worker_failed",
+                        "message": "The analysis worker stopped unexpectedly.",
+                    },
+                )
+
     # -- Routing ---------------------------------------------------------------
-    def _read_asset(self, request_path: str) -> tuple[int, dict, bytes]:
-        relative = request_path.removeprefix("/assets/")
+    def _read_static_asset(self, request_path: str) -> tuple[int, dict, bytes]:
+        relative = request_path.removeprefix("/")
         parts = relative.split("/")
         if (
             not relative
@@ -619,11 +768,11 @@ class Handler:
         ):
             return 404, {"Content-Type": "text/plain; charset=utf-8"}, b"Not Found"
 
-        assets_root = self.ASSETS_ROOT.resolve()
-        requested = assets_root.joinpath(*parts)
+        static_root = self.STATIC_ROOT.resolve()
+        requested = static_root.joinpath(*parts)
         try:
             target = requested.resolve()
-            target.relative_to(assets_root)
+            target.relative_to(static_root)
         except (OSError, ValueError):
             return 404, {"Content-Type": "text/plain; charset=utf-8"}, b"Not Found"
         if requested.is_symlink() or not target.is_file():
@@ -638,7 +787,11 @@ class Handler:
         else:
             content_type = mimetypes.guess_type(target.name)[0] or "application/octet-stream"
         return 200, {
-            "Cache-Control": "public, max-age=31536000, immutable",
+            "Cache-Control": (
+                "public, max-age=31536000, immutable"
+                if request_path.startswith("/_app/immutable/")
+                else "no-cache"
+            ),
             "Content-Length": str(len(body)),
             "Content-Type": content_type,
             "X-Content-Type-Options": "nosniff",
@@ -682,8 +835,33 @@ class Handler:
             headers["Content-Length"] = str(len(body))
             return 200, headers, body
 
-        if path.startswith("/assets/"):
-            return self._read_asset(path)
+        if path.startswith("/_app/") or path.startswith("/assets/"):
+            return self._read_static_asset(path)
+
+        if path == "/api/reports":
+            payload = json.dumps(
+                {"reports": self._list_reports()},
+                ensure_ascii=False,
+            ).encode("utf-8")
+            headers_out = dict(self.JSON_HEADERS)
+            headers_out["Content-Length"] = str(len(payload))
+            return 200, headers_out, payload
+
+        if path.startswith("/api/reports/"):
+            month = path.removeprefix("/api/reports/")
+            report = self._read_report_document(month)
+            if report is None:
+                payload = json.dumps(
+                    {"error": "report_not_found", "message": "The requested report is unavailable."},
+                    ensure_ascii=False,
+                ).encode("utf-8")
+                headers_out = dict(self.JSON_HEADERS)
+                headers_out["Content-Length"] = str(len(payload))
+                return 404, headers_out, payload
+            payload = json.dumps(report, ensure_ascii=False).encode("utf-8")
+            headers_out = dict(self.JSON_HEADERS)
+            headers_out["Content-Length"] = str(len(payload))
+            return 200, headers_out, payload
 
         if path in {"/api/book", "/api/months", "/api/analyze"}:
             try:
@@ -773,14 +951,39 @@ class Handler:
                 content_length = int(headers.get("Content-Length", "0") or "0")
             except ValueError:
                 content_length = 0
-            if content_length <= 0:
+            transfer_encoding = str(headers.get("Transfer-Encoding", "") or "").lower()
+            if "chunked" in transfer_encoding:
+                try:
+                    raw_body = self._read_chunked_body(rfile)
+                except ValueError as exc:
+                    payload = json.dumps(
+                        {"error": "invalid_chunked_body", "message": str(exc)},
+                        ensure_ascii=False,
+                    ).encode("utf-8")
+                    headers_out = {
+                        "Content-Type": "application/json; charset=utf-8",
+                        "Content-Length": str(len(payload)),
+                    }
+                    return 400, headers_out, payload
+            elif content_length > 0:
+                if content_length > self.MAX_ANALYZE_BODY_BYTES:
+                    payload = json.dumps(
+                        {"error": "body_too_large", "message": "request body exceeds 1 MiB"},
+                        ensure_ascii=False,
+                    ).encode("utf-8")
+                    headers_out = {
+                        "Content-Type": "application/json; charset=utf-8",
+                        "Content-Length": str(len(payload)),
+                    }
+                    return 413, headers_out, payload
+                raw_body = rfile.read(content_length)
+            else:
                 payload = json.dumps(
                     {"error": "missing_body", "message": "POST /api/analyze requires a JSON body"},
                     ensure_ascii=False,
                 ).encode("utf-8")
                 headers_out = {"Content-Type": "application/json; charset=utf-8", "Content-Length": str(len(payload))}
                 return 400, headers_out, payload
-            raw_body = rfile.read(content_length)
             try:
                 req_body = json.loads(raw_body.decode("utf-8"))
             except (UnicodeDecodeError, json.JSONDecodeError) as e:
@@ -879,65 +1082,47 @@ class Handler:
                 return 500, out, payload
 
             try:
-                upstream_status, upstream_body, _upstream_headers = self._call_hermes_api(system_prompt)
+                threading.Thread(
+                    target=self._run_analysis_job,
+                    kwargs={
+                        "run_id": run_id,
+                        "system_prompt": system_prompt,
+                        "window": window.strip(),
+                        "private_output_filename": private_output_filename,
+                        "output_filename": output_filename,
+                    },
+                    name=f"account-analysis-{run_id[:8]}",
+                    daemon=True,
+                ).start()
             except Exception as exc:
-                self._log(f"/api/analyze: upstream exception: {exc}")
-                upstream_status = 503
-                upstream_body = str(exc).encode("utf-8")
-            self._log(
-                f"/api/analyze: upstream status={upstream_status}, body bytes={len(upstream_body)}, window={window!r}"
-            )
-
-            try:
-                upstream_json = json.loads(upstream_body.decode("utf-8")) if upstream_body else {}
-            except (UnicodeDecodeError, json.JSONDecodeError):
-                upstream_json = {"raw": upstream_body.decode("utf-8", errors="replace")}
-            assistant_content = ""
-            try:
-                choices = upstream_json.get("choices") or []
-                if choices:
-                    assistant_content = (choices[0].get("message") or {}).get("content") or ""
-            except (AttributeError, IndexError):
-                pass
-
-            with self._analyze_lock:
-                try:
-                    state, report_url, analysis_error = self._analysis_file_outcome_locked(
-                        run_id=run_id,
-                        private_output_filename=private_output_filename,
-                        output_filename=output_filename,
-                        upstream_status=upstream_status,
-                    )
-                except Exception as exc:
-                    self._log(f"/api/analyze: report publish failed: {exc}")
-                    state, report_url, analysis_error = (
-                        "failed",
-                        "",
-                        {"code": "report_publish_failed", "message": "The report file could not be published."},
-                    )
-                if state != "superseded":
+                self._log(f"/api/analyze: could not start background worker: {exc}")
+                error = {
+                    "code": "analysis_worker_start_failed",
+                    "message": "The analysis worker could not be started.",
+                }
+                with self._analyze_lock:
                     self._finish_analysis_locked(
                         run_id=run_id,
-                        state=state,
+                        state="failed",
                         finished_at=time.time(),
-                        report_url=report_url,
-                        error=analysis_error,
-                        upstream_status=upstream_status,
+                        error=error,
                     )
-                final_status = self._analysis_status_locked()
+                    final_status = self._analysis_status_locked()
+                payload = json.dumps(
+                    {"error": error["code"], "message": error["message"], "analysis": final_status},
+                    ensure_ascii=False,
+                ).encode("utf-8")
+                out = dict(self.JSON_HEADERS)
+                out["Content-Length"] = str(len(payload))
+                return 503, out, payload
 
-            response = {
-                "upstream_status": upstream_status,
-                "report_path_hint": str(self.book_path.parent / "reports" / output_filename),
-                "report_url": final_status["report_url"],
-                "agent_message": assistant_content,
-                "analysis": final_status,
-                "raw": upstream_json,
-            }
+            with self._analyze_lock:
+                launch_status = self._analysis_status_locked()
+            response = {"accepted": True, "analysis": launch_status}
             payload = json.dumps(response, ensure_ascii=False).encode("utf-8")
             out = dict(self.JSON_HEADERS)
             out["Content-Length"] = str(len(payload))
-            return (200 if final_status["state"] == "succeeded" else 502), out, payload
+            return 202, out, payload
 
         if path == "/healthz":
             payload = json.dumps(
@@ -948,17 +1133,18 @@ class Handler:
             return 200, headers, payload
 
         # -- Reports viewer ----------------------------------------------------
-        # GET /reports/                  -> HTML index of all analysis-*.html
+        # GET /reports.html              -> HTML index of all analysis-*.html
+        # GET /reports/                  -> backward-compatible local alias
         # GET /reports/<filename>.html   -> serve the report file
         # The reports directory lives next to the ledger. Filenames are
         # constrained by SKILL_PROMPT.md (analysis-YYYY-MM.html), so we
         # enforce a strict allowlist before touching the filesystem.
-        if path == "/reports/" or path.startswith("/reports"):
+        if path == "/reports.html" or path == "/reports/" or path.startswith("/reports"):
             reports_dir = (self.book_path.parent / "reports").resolve()
             reports_dir.mkdir(parents=True, exist_ok=True)
 
             # Directory: render a small listing of available reports.
-            if path == "/reports/" or path == "/reports":
+            if path in {"/reports.html", "/reports/", "/reports"}:
                 entries: list[dict] = []
                 rx = re.compile(r"^analysis-(\d{4})-(\d{2})\.html$")
                 for f in reports_dir.iterdir():
@@ -1046,7 +1232,7 @@ class Handler:
             if not target.is_file():
                 return 404, {"Content-Type": "text/plain; charset=utf-8"}, b"Report not found"
 
-            body = target.read_bytes()
+            body = self._rewrite_report_navigation(target.read_bytes())
             headers_out = {
                 "Content-Type": "text/html; charset=utf-8",
                 "Content-Length": str(len(body)),
@@ -1123,13 +1309,9 @@ def main(argv: list[str] | None = None) -> int:
     print(f"[serve.py] mode     = ThreadingHTTPServer (concurrent requests; busy state still serializes /api/analyze)", flush=True)
 
     handler_cls = make_handler(book_path, reload=args.reload)
-    # ThreadingHTTPServer = HTTPServer + per-request thread. This is required
-    # because /api/analyze blocks the request thread for up to `timeout` seconds
-    # while waiting for the upstream agent. Without threading, a slow or hung
-    # upstream would freeze every other endpoint (including /api/analyze/status
-    # and the dashboard's GET /api/book), making the page appear dead to the
-    # user. The analyze endpoint is still effectively single-flight via the
-    # _analyze_busy lock on the shared instance state.
+    # ThreadingHTTPServer keeps ordinary dashboard requests independent. The
+    # analysis endpoint itself returns after launching a daemon worker, while
+    # the shared busy state keeps the expensive Hermes call single-flight.
     server = ThreadingHTTPServer((args.host, args.port), handler_cls)
     try:
         server.serve_forever()

@@ -19,7 +19,7 @@ I will handle this in two steps and write only after confirmation:
 Confirm write?
 ```
 
-Internally, write the subscription definition before trying to record a charge for it. If both are requested together, preview the two-step bundle first, wait for confirmation, then write them in order.
+Internally, write the subscription definition before trying to record a charge for it. If both are requested together, preview the two-step bundle first, wait for confirmation, then write them in order. Never use `add-transaction` for an actual subscription charge; use `charge-subscription` so the transaction reference, last-charge state, and next billing date change together.
 
 ## Daily due-check blueprint
 
@@ -89,7 +89,13 @@ Do not run ad-hoc shell/Python/grep ledger probes in a ClawChat flow. Use confir
 
 ## Foreign-currency subscriptions
 
-Preserve the billed currency. If the user supplies a base-currency amount, store it internally. If not, mark the charge as needing review for missing conversion and tell the user naturally:
+Preserve the billed currency. For every actual charge, use the following order before asking for confirmation:
+
+1. Store the actual settled base-currency amount when the user, receipt, or statement provides it.
+2. Otherwise use a user-supplied rate.
+3. Otherwise search a dated reference rate for the actual charge date, show the source/date/calculation, label it as an estimate, and include the rate plus charge in the same confirmation bundle.
+
+Do not write the charge first and ask for the conversion afterward. If no reliable dated rate is available, stop and ask for the settled amount or an approved rate. The only incomplete fallback is when the user explicitly confirms storing the original-currency charge under review:
 
 ```text
 This is a USD charge, but the CNY conversion amount is still missing; I will mark it for review.

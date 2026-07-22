@@ -27,18 +27,18 @@ Operator-only note: this file names tools and storage fields for implementation.
 - **Don't write transfers as `expense`.** They inflate the user's apparent spend and break the cashflow math. (See Pitfall #14.)
 - **Don't paste the receipt raw text into the ledger.** Build a structured candidate first so the agent only ever writes confirmed finance records.
 
-## Platform disambiguation — DO NOT trust your own inference
+## Source disambiguation — do not trust visual styling
 
-When the user sends a balance-change / balance-detail screenshot, **never assume which platform it is based on the icon, color scheme, or layout.** WeChat (WeChat Wallet balance) and Alipay (balance change details) render nearly identically in compressed images: white card, descending date list, red negative amounts, top status bar that looks the same after compression. Icon recognition in vision models is unreliable across iOS/Android, dark/light mode, and trimmed crops.
+When the user sends a balance-change or balance-detail screenshot, **never infer its source application or ledger account from icons, colors, or layout alone.** Different payment, wallet, and banking applications can render similar screens, especially after compression, cropping, theme changes, or operating-system changes. Treat visual source identification as uncertain unless the image contains explicit readable source text or the user identifies it.
 
 Required workflow when an image-only balance detail arrives:
 
 1. Do NOT write any account or transaction based on inferred platform.
-2. Ask the user explicitly: "Is this screenshot from WeChat or Alipay?" Frame it naturally — "It looks like X, but X and Y are very hard to distinguish with compressed screenshots, so please confirm for me."
-3. If the user names a destination account in passing ("this is my WeChat wallet", "this is Alipay"), still confirm once before writing — vision model inferences are wrong often enough that one confirmation is cheaper than a wrong-source migration.
-4. If the user is unsure ("I also cannot distinguish them with 100% certainty"), treat their stated preference as authoritative and proceed, but log the uncertainty in the transaction `source.source_text` so future audits can find it.
+2. Ask the user which application or ledger account the screenshot belongs to. Explain naturally that the visual source is ambiguous and needs confirmation.
+3. If the user already identifies the source in the same message, use that statement as authoritative unless it conflicts with other explicit information. Do not ask for redundant confirmation solely because the image is ambiguous.
+4. If the user is unsure, ask which ledger account they want associated with the record and preserve the uncertainty in transaction `source.source_text` for later audit.
 
-Failure mode this prevents: writing a WeChat-balance account named WeChat Wallet when the source is actually Alipay, then having to retroactively rename the account, re-attribute every transaction, and reverse the initial balance calculation.
+Failure mode this prevents: assigning a balance or transaction to the wrong source account, then having to rename the account, re-attribute its records, and reverse the initial-balance calculation.
 
 ## Anchor-balance reconstruction when the bottom is cropped
 
@@ -53,10 +53,10 @@ Required workflow:
 
 ## Worked example (abbreviated)
 
-User posts a screenshot of an Alipay "balance change details" page that shows:
+User posts a screenshot of a payment application's balance-detail page that shows:
 
 ```
-2026-07-03 11:48  Lawson Convenience Store, Qianhai Fund Town  -23.00   Balance 255.55
+2026-07-03 11:48  Neighborhood Convenience Store               -23.00   Balance 255.55
 2026-07-03 11:47  Transfer to bank card - transfer - Shen Hui   -250.00  Balance 278.55
 2026-07-02 19:51  Old Brown Sugar Pearl Milk Tea               -11.90   Balance 528.55
 2026-07-02 19:49  Top Picks Longfa Signature Chicken Hot Pot for Two  -145.90  Balance 540.45

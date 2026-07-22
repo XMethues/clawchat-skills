@@ -55,9 +55,9 @@ and a populated `review.history`). This is a *successful write with a
 flag*, not a refused write — the ledger has already been updated.
 
 What surfaced a real near-miss this way: bulk import from a balance-detail
-screenshot — same merchant, same amount, different day (Lawson ¥23.00 on
+screenshot — same merchant, same amount, different day (a neighborhood store charging ¥23.00 on
 07-02 and 07-03). The CLI did not know both are real, so it auto-flagged
-the second one. The user will then say "keep both" / "Lawson was two
+the second one. The user will then say "keep both" / "the store made two
 transactions" and expect you to clear the flag without rewriting.
 
 Required workflow:
@@ -68,7 +68,7 @@ Required workflow:
    "the second write failed".
 2. In the natural-language reply, mention the flag in passing: "The 7th
    entry was automatically marked as pending review because the system
-   thinks it may be a duplicate of Lawson ¥23.00 from 07-02 — this is
+   thinks it may be a duplicate of the ¥23.00 store purchase from 07-02 — this is
    because the same store charged the same amount on different dates, but
    it is actually two real transactions. When you have a moment, tell me
    'keep both' and I will mark it as approved."
@@ -76,11 +76,11 @@ Required workflow:
    `resolve-review --status resolved`. Do not auto-resolve just because the
    duplicate candidate is "obviously the same pattern" — the user knows
    their own payment cadence; trust their judgment.
-4. The user may say "keep both" / "not a duplicate" / "Lawson was two
+4. The user may say "keep both" / "not a duplicate" / "the store made two
    transactions" — any of these maps to `--status resolved --resolution
    "not_duplicate: <brief justification>"`. Keep the resolution string to
    one short clause, never paste internal ids or candidate counts.
-5. After resolution, report only the natural outcome: "✅ The Lawson entry
+5. After resolution, report only the natural outcome: "✅ The store entry
    from 07-03 has been marked as approved; it really was two transactions."
 
 Failure mode this prevents: silently leaving `needs_review: true` on the

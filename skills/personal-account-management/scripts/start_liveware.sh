@@ -269,7 +269,7 @@ start_agent() {
     fi
     rm -f "$pid_file"
   fi
-  nohup env HOME="$HERMES_HOME" "$LIVEWARE_PATH" agent \
+  nohup "$LIVEWARE_PATH" agent \
     >>"$logs/liveware-agent.out.log" \
     2>>"$logs/liveware-agent.err.log" </dev/null &
   echo "$!" > "$pid_file"
@@ -278,7 +278,7 @@ start_agent() {
 stop_old_service
 start_service || { json_emit blocked service_unhealthy "local account service did not become healthy" "$APP_ID"; exit 2; }
 
-bind_output="$(HOME="$HERMES_HOME" run_with_timeout "$LIVEWARE_PATH" tunnel bind "$APP_ID" "http://$HOST:$PORT" 2>&1)" || {
+bind_output="$(run_with_timeout "$LIVEWARE_PATH" tunnel bind "$APP_ID" "http://$HOST:$PORT" 2>&1)" || {
   json_emit blocked liveware_tunnel_bind_failed "$bind_output" "$APP_ID"
   exit 2
 }

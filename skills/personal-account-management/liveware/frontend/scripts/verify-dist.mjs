@@ -29,13 +29,20 @@ try {
   const viteCli = path.join(frontendDir, "node_modules", "vite", "bin", "vite.js");
   const result = spawnSync(
     process.execPath,
-    [viteCli, "build", "--outDir", temporaryDist, "--emptyOutDir"],
-    { cwd: frontendDir, encoding: "utf8" },
+    [viteCli, "build"],
+    {
+      cwd: frontendDir,
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        PAM_DASHBOARD_OUT_DIR: temporaryDist,
+      },
+    },
   );
   if (result.status !== 0) {
     process.stderr.write(result.stdout ?? "");
     process.stderr.write(result.stderr ?? "");
-    throw new Error(`temporary Vite build failed with status ${result.status}`);
+    throw new Error(`temporary SvelteKit build failed with status ${result.status}`);
   }
 
   const expectedFiles = await filesUnder(temporaryDist);
