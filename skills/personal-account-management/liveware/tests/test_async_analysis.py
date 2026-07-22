@@ -121,7 +121,7 @@ class AsyncAnalysisTests(unittest.TestCase):
             self.assertIsNotNone(final_status)
             self.assertEqual(final_status["state"], "succeeded")
             self.assertEqual(final_status["upstream_status"], 200)
-            self.assertEqual(final_status["report_url"], "/reports/analysis-2026-07.html")
+            self.assertEqual(final_status["report_url"], "#/reports/2026-07")
 
 
 if __name__ == "__main__":

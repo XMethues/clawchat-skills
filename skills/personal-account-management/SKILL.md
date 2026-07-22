@@ -1,7 +1,7 @@
 ---
 name: personal-account-management
 description: "Personal finance ledger/account management for creating accounts and recording balances, income, expenses, transfers, subscriptions, budgets, receipts, and review items with preview and confirmation."
-version: 1.7.1
+version: 1.7.2
 author: Colin + Hermes Agent
 license: MIT
 platforms: [linux, macos, windows]

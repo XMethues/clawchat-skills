@@ -412,12 +412,14 @@ Preserves the existing `busy`, `started_at`, `elapsed_s`, and `window` fields an
   "finished_at": 1783950030.0,
   "elapsed_s": 30.0,
   "window": "single month: 2026-07",
-  "report_url": "/reports/analysis-2026-07.html",
+  "report_url": "#/reports/2026-07",
   "error": null,
   "upstream_status": 200
 }
 ```
 
 `state` is `idle`, `running`, `succeeded`, or `failed`. A concurrent POST returns HTTP 409 plus the same current status under `analysis`. A stale running state becomes `failed` with `error.code: analysis_timeout`.
+
+`report_url` is an internal SvelteKit hash route. Generated HTML remains a private persisted artifact read through `/api/reports`; the server does not expose `/reports`, `/reports.html`, or direct `/reports/analysis-*.html` compatibility routes.
 
 Each run writes to a private filename containing its run id. Only the still-current run may publish that private file to the stable report filename; an older timed-out worker is discarded and cannot overwrite a newer report or status. A newly published report backs up the previous stable report first. A run-specific error file takes precedence over any pre-existing successful report. Upstream failure, an error report, or a missing run-specific report persists a failed outcome.

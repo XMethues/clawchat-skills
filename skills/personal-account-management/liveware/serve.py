@@ -448,6 +448,11 @@ class Handler:
         return output_filename.removesuffix(".html") + ".err.html"
 
     @staticmethod
+    def _dashboard_report_url(output_filename: str) -> str:
+        match = re.fullmatch(r"analysis-(\d{4}-(?:0[1-9]|1[0-2]))\.html", output_filename)
+        return f"#/reports/{match.group(1)}" if match else "#/reports"
+
+    @staticmethod
     def _remove_if_present(path: Path) -> None:
         try:
             path.unlink()
@@ -501,7 +506,7 @@ class Handler:
             self._remove_if_present(private_report)
             return (
                 "failed",
-                f"/reports/{final_error.name}",
+                "",
                 {"code": "report_failed", "message": "The analysis produced an error report."},
             )
         if upstream_status >= 400:
@@ -514,24 +519,12 @@ class Handler:
         if private_report.is_file():
             final_report = reports_dir / output_filename
             self._publish_analysis_file(private_report, final_report)
-            return "succeeded", f"/reports/{final_report.name}", None
+            return "succeeded", self._dashboard_report_url(final_report.name), None
         return (
             "failed",
             "",
             {"code": "report_missing", "message": "The analysis finished without a report file."},
         )
-
-    def _rewrite_report_navigation(self, body: bytes) -> bytes:
-        try:
-            report = body.decode("utf-8")
-        except UnicodeDecodeError:
-            return body
-        rewritten = re.sub(
-            r'href=(["\'])(?:https?://[^"\']+)?/reports/\1',
-            lambda match: f"href={match.group(1)}/reports.html{match.group(1)}",
-            report,
-        )
-        return rewritten.encode("utf-8")
 
     def _strip_report_navigation(self, report: str) -> str:
         """Remove legacy report-index anchors from iframe content.
@@ -1131,113 +1124,6 @@ class Handler:
             ).encode("utf-8")
             headers = {"Content-Type": "application/json; charset=utf-8", "Content-Length": str(len(payload))}
             return 200, headers, payload
-
-        # -- Reports viewer ----------------------------------------------------
-        # GET /reports.html              -> HTML index of all analysis-*.html
-        # GET /reports/                  -> backward-compatible local alias
-        # GET /reports/<filename>.html   -> serve the report file
-        # The reports directory lives next to the ledger. Filenames are
-        # constrained by SKILL_PROMPT.md (analysis-YYYY-MM.html), so we
-        # enforce a strict allowlist before touching the filesystem.
-        if path == "/reports.html" or path == "/reports/" or path.startswith("/reports"):
-            reports_dir = (self.book_path.parent / "reports").resolve()
-            reports_dir.mkdir(parents=True, exist_ok=True)
-
-            # Directory: render a small listing of available reports.
-            if path in {"/reports.html", "/reports/", "/reports"}:
-                entries: list[dict] = []
-                rx = re.compile(r"^analysis-(\d{4})-(\d{2})\.html$")
-                for f in reports_dir.iterdir():
-                    if not f.is_file():
-                        continue
-                    m = rx.match(f.name)
-                    if not m:
-                        continue
-                    entries.append(
-                        {
-                            "name": f.name,
-                            "year": int(m.group(1)),
-                            "month": int(m.group(2)),
-                            "size": f.stat().st_size,
-                            "mtime": f.stat().st_mtime,
-                        }
-                    )
-                entries.sort(key=lambda e: (e["year"], e["month"]), reverse=True)
-
-                rows = "\n".join(
-                    f'<li><a href="/reports/{e["name"]}">{e["name"]}</a>'
-                    f' <span class="meta">— {e["size"]:,} bytes — {e["year"]}-{e["month"]:02d}</span></li>'
-                    for e in entries
-                )
-                if not rows:
-                    rows = '<li class="empty">No analysis reports yet. Open the dashboard and click "Analysis" to generate the first one.</li>'
-
-                html = f"""<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<title>Analysis Reports</title>
-<style>
-  body {{ font: 15px/1.6 -apple-system, system-ui, sans-serif;
-          color: oklch(21% 0.024 235); background: oklch(98% 0.006 220);
-          max-width: 720px; margin: 40px auto; padding: 0 20px; }}
-  h1 {{ font-size: 28px; margin: 0 0 8px; }}
-  p.lead {{ color: oklch(52% 0.018 235); margin: 0 0 20px; }}
-  ul {{ list-style: none; padding: 0; }}
-  li {{ padding: 12px 16px; margin-bottom: 8px;
-        background: white; border: 1px solid oklch(90% 0.007 235);
-        border-radius: 10px; }}
-  li.empty {{ color: oklch(52% 0.018 235); font-style: italic; }}
-  a {{ color: oklch(58% 0.12 170); text-decoration: none; font-weight: 600;
-       font-family: ui-monospace, Menlo, monospace; }}
-  a:hover {{ text-decoration: underline; }}
-  .meta {{ color: oklch(52% 0.018 235); font-size: 13px; }}
-  .back {{ display: inline-block; margin-top: 16px; color: oklch(52% 0.018 235);
-           text-decoration: none; font-size: 13px; }}
-</style>
-</head>
-<body>
-  <h1>Analysis Reports</h1>
-  <p class="lead">{len(entries)} reports, sorted by month descending.</p>
-  <ul>
-    {rows}
-  </ul>
-  <a class="back" href="/">← Back to dashboard</a>
-</body>
-</html>
-"""
-                body = html.encode("utf-8")
-                headers_out = {
-                    "Content-Type": "text/html; charset=utf-8",
-                    "Content-Length": str(len(body)),
-                }
-                return 200, headers_out, body
-
-            # File: serve an individual report.
-            # Strip the "/reports/" prefix; remaining segment is the filename.
-            tail = path[len("/reports/"):] if path.startswith("/reports/") else ""
-            if not tail or not re.fullmatch(
-                r"analysis-\d{4}-(0[1-9]|1[0-2])(?:\.err)?\.html",
-                tail,
-            ):
-                return 404, {"Content-Type": "text/plain; charset=utf-8"}, b"Not Found"
-
-            target = (reports_dir / tail).resolve()
-            # Defense-in-depth: reject anything that escapes reports_dir
-            # (resolve() can still follow a symlink, so check the parent).
-            try:
-                target.relative_to(reports_dir)
-            except ValueError:
-                return 404, {"Content-Type": "text/plain; charset=utf-8"}, b"Not Found"
-            if not target.is_file():
-                return 404, {"Content-Type": "text/plain; charset=utf-8"}, b"Report not found"
-
-            body = self._rewrite_report_navigation(target.read_bytes())
-            headers_out = {
-                "Content-Type": "text/html; charset=utf-8",
-                "Content-Length": str(len(body)),
-            }
-            return 200, headers_out, body
 
         # Tell noisy probes the server is alive even on unknown paths.
         _ = raw_path

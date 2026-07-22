@@ -26,9 +26,9 @@ class ReportNavigationTests(unittest.TestCase):
     def test_report_opens_as_a_sveltekit_hash_route(self) -> None:
         source = COMPONENT.read_text(encoding="utf-8")
 
-        self.assertIn('href={`#/reports/${displayedMonth}`}', source)
+        self.assertIn("href={analysis.report_url}", source)
         self.assertIn('href="#/reports"', source)
-        self.assertNotIn('href={analysis.report_url}', source)
+        self.assertNotIn('href={`#/reports/${displayedMonth}`}', source)
         self.assertNotIn('target="_blank"', source)
         self.assertNotIn("window.open", source)
 
@@ -69,6 +69,15 @@ class ReportNavigationTests(unittest.TestCase):
 
             missing_status, _, _ = handler.route("GET", "/api/reports/2026-06")
             self.assertEqual(missing_status, 404)
+
+            for legacy_path in (
+                "/reports",
+                "/reports/",
+                "/reports.html",
+                "/reports/analysis-2026-07.html",
+            ):
+                legacy_status, _, _ = handler.route("GET", legacy_path)
+                self.assertEqual(legacy_status, 404, legacy_path)
 
     def test_analysis_prompt_leaves_navigation_to_sveltekit(self) -> None:
         with TemporaryDirectory() as directory:

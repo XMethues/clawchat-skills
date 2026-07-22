@@ -117,7 +117,7 @@
 
       <div class="mt-auto flex flex-wrap gap-3 pt-6 max-[45rem]:w-full max-[45rem]:[&_[data-slot=button]]:w-full">
         {#if analysis.state === "succeeded" && analysis.report_url}
-          <Button href={`#/reports/${displayedMonth}`}>
+          <Button href={analysis.report_url}>
             {t("analysisOpenReport")}
           </Button>
         {/if}
